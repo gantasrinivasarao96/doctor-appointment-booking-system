@@ -57,7 +57,33 @@ const getDoctorProfileController = async (req, res) => {
   }
 };
 
+// =============================
+// Get All Approved Doctors
+// =============================
+const getAllDoctorsController = async (req, res) => {
+  try {
+    const doctors = await Doctor.find({
+      status: "approved",
+    });
+
+    res.status(200).json({
+      success: true,
+      total: doctors.length,
+      doctors,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch approved doctors",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   applyDoctorController,
   getDoctorProfileController,
+  getAllDoctorsController,
 };
