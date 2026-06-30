@@ -1,4 +1,5 @@
 const Appointment = require("../models/Appointment");
+const Doctor = require("../models/Doctor");
 
 // ======================================
 // Book Appointment
@@ -51,7 +52,44 @@ const getUserAppointmentsController = async (req, res) => {
   }
 };
 
+// ======================================
+// Get Doctor Appointments
+// ======================================
+const getDoctorAppointmentsController = async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({
+      userId: req.user._id,
+    });
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor profile not found",
+      });
+    }
+
+    const appointments = await Appointment.find({
+      doctorId: doctor._id,
+    }).populate("userId", "-password");
+
+    res.status(200).json({
+      success: true,
+      total: appointments.length,
+      appointments,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch doctor appointments",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   bookAppointmentController,
   getUserAppointmentsController,
+  getDoctorAppointmentsController,
 };
