@@ -1,5 +1,6 @@
 const express = require("express");
 const authMiddleware = require("../middleware/authMiddleware");
+const { adminMiddleware } = require("../middleware/roleMiddleware");
 
 const {
   getPendingDoctorsController,
@@ -8,10 +9,20 @@ const {
 
 const router = express.Router();
 
-// Get Pending Doctor Applications
-router.get("/doctors/pending", authMiddleware, getPendingDoctorsController);
+// Get Pending Doctors (Admin Only)
+router.get(
+  "/doctors/pending",
+  authMiddleware,
+  adminMiddleware,
+  getPendingDoctorsController
+);
 
-// Approve Doctor
-router.put("/doctors/approve/:id", authMiddleware, approveDoctorController);
+// Approve Doctor (Admin Only)
+router.put(
+  "/doctors/approve/:id",
+  authMiddleware,
+  adminMiddleware,
+  approveDoctorController
+);
 
 module.exports = router;
