@@ -88,8 +88,45 @@ const getDoctorAppointmentsController = async (req, res) => {
   }
 };
 
+// ======================================
+// Update Appointment Status
+// ======================================
+const updateAppointmentStatusController = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const appointment = await Appointment.findById(req.params.id);
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    appointment.status = status;
+
+    await appointment.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Appointment status updated successfully",
+      appointment,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update appointment status",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   bookAppointmentController,
   getUserAppointmentsController,
   getDoctorAppointmentsController,
+  updateAppointmentStatusController,
 };
