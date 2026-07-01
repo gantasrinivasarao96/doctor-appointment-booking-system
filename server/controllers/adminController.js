@@ -59,8 +59,51 @@ const approveDoctorController = async (req, res) => {
     });
   }
 };
+// ======================================
+// Reject Doctor
+// ======================================
+const rejectDoctorController = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    doctor.status = "rejected";
+
+    await doctor.save();
+
+    await User.findByIdAndUpdate(
+      doctor.userId,
+      {
+        isDoctor: false,
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Doctor rejected successfully",
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Rejection failed",
+      error: error.message,
+    });
+
+  }
+};
 
 module.exports = {
   getPendingDoctorsController,
   approveDoctorController,
+  rejectDoctorController,
 };

@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import BookAppointment from "./pages/BookAppointment";
 import MyAppointments from "./pages/MyAppointments";
+import ApplyDoctor from "./pages/ApplyDoctor";
 
 import UserDashboard from "./dashboard/UserDashboard";
 import DoctorDashboard from "./dashboard/DoctorDashboard";
@@ -14,6 +15,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -23,10 +25,28 @@ function App() {
         <Route path="/book/:doctorId" element={<BookAppointment />} />
         <Route path="/my-appointments" element={<MyAppointments />} />
 
+        {/* Doctor Application */}
+        <Route
+          path="/apply-doctor"
+          element={<ApplyDoctor />}
+        />
+
         {/* Dashboard Routes */}
-        <Route path="/user/dashboard" element={<UserDashboard />} />
-        <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route
+          path="/user/dashboard"
+          element={<UserDashboard />}
+        />
+
+        <Route
+          path="/doctor/dashboard"
+          element={<DoctorDashboard />}
+        />
+
+        <Route
+          path="/admin/dashboard"
+          element={<AdminDashboard />}
+        />
+
       </Routes>
     </BrowserRouter>
   );

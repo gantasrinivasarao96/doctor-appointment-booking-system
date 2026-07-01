@@ -5,9 +5,30 @@ const Doctor = require("../models/Doctor");
 // =============================
 const applyDoctorController = async (req, res) => {
   try {
-    const doctor = new Doctor(req.body);
+    // Check if already applied
+    const existingDoctor = await Doctor.findOne({
+      userId: req.user._id,
+    });
 
-    doctor.status = "pending";
+    if (existingDoctor) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already applied as a doctor.",
+      });
+    }
+
+    const doctor = new Doctor({
+      userId: req.user._id,
+      fullName: req.body.fullName,
+      phone: req.body.phone,
+      email: req.body.email,
+      specialization: req.body.specialization,
+      experience: req.body.experience,
+      fees: req.body.fees,
+      address: req.body.address,
+      timings: req.body.timings,
+      status: "pending",
+    });
 
     await doctor.save();
 
@@ -15,6 +36,7 @@ const applyDoctorController = async (req, res) => {
       success: true,
       message: "Doctor application submitted successfully",
     });
+
   } catch (error) {
     console.error(error);
 
@@ -46,12 +68,41 @@ const getDoctorProfileController = async (req, res) => {
       success: true,
       doctor,
     });
+
   } catch (error) {
     console.error(error);
 
     res.status(500).json({
       success: false,
       message: "Failed to fetch doctor profile",
+      error: error.message,
+    });
+  }
+};
+// =============================
+// Get Single Doctor
+// =============================
+const getSingleDoctorController = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      doctor,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch doctor",
       error: error.message,
     });
   }
@@ -71,6 +122,7 @@ const getAllDoctorsController = async (req, res) => {
       total: doctors.length,
       doctors,
     });
+
   } catch (error) {
     console.error(error);
 
@@ -85,5 +137,6 @@ const getAllDoctorsController = async (req, res) => {
 module.exports = {
   applyDoctorController,
   getDoctorProfileController,
+  getSingleDoctorController,
   getAllDoctorsController,
 };

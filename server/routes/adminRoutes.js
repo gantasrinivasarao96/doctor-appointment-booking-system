@@ -5,6 +5,7 @@ const { adminMiddleware } = require("../middleware/roleMiddleware");
 const {
   getPendingDoctorsController,
   approveDoctorController,
+  rejectDoctorController,
 } = require("../controllers/adminController");
 
 const router = express.Router();
@@ -23,6 +24,14 @@ router.put(
   authMiddleware,
   adminMiddleware,
   approveDoctorController
+);
+
+// Reject Doctor (Admin Only)
+router.put(
+  "/doctors/reject/:id",
+  authMiddleware,
+  adminMiddleware,
+  rejectDoctorController
 );
 
 module.exports = router;

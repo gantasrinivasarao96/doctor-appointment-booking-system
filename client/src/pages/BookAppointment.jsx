@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../services/api";
 import Navbar from "../components/Navbar";
@@ -8,9 +8,28 @@ function BookAppointment() {
   const navigate = useNavigate();
   const { doctorId } = useParams();
 
+  const [doctor, setDoctor] = useState(null);
+
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
   const [medicalDocument, setMedicalDocument] = useState(null);
+
+  useEffect(() => {
+    getDoctor();
+  }, []);
+
+  const getDoctor = async () => {
+    try {
+      const { data } = await API.get(`/doctor/${doctorId}`);
+
+      if (data.success) {
+        setDoctor(data.doctor);
+      }
+    } catch (error) {
+      console.log(error);
+      alert("Failed to load doctor details");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,15 +55,28 @@ function BookAppointment() {
       alert(data.message);
 
       navigate("/user/dashboard");
+
     } catch (error) {
       console.error(error);
 
       alert(
         error.response?.data?.message ||
-          "Failed to book appointment"
+        "Failed to book appointment"
       );
     }
   };
+
+  if (!doctor) {
+    return (
+      <>
+        <Navbar />
+        <div className="container text-center py-5">
+          <h3>Loading doctor details...</h3>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -61,19 +93,18 @@ function BookAppointment() {
                   Book Appointment
                 </h2>
 
-                <h4>Dr. Srinivasa Rao</h4>
+                <h4>{doctor.fullName}</h4>
 
                 <p>
-                  <strong>Specialization:</strong> General Physician
+                  <strong>Specialization:</strong> {doctor.specialization}
                 </p>
 
                 <p>
-                  <strong>Consultation Fee:</strong> ₹500
+                  <strong>Consultation Fee:</strong> ₹{doctor.fees}
                 </p>
 
                 <form onSubmit={handleSubmit}>
-
-                  <div className="mb-3">
+                                  <div className="mb-3">
                     <label className="form-label">
                       Appointment Date
                     </label>
@@ -127,12 +158,14 @@ function BookAppointment() {
                   </button>
 
                 </form>
+                              </div>
 
-              </div>
             </div>
 
           </div>
+
         </div>
+
       </div>
 
       <Footer />

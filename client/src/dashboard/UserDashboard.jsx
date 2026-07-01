@@ -21,10 +21,13 @@ function UserDashboard() {
       <Navbar />
 
       <div className="container py-5">
+
         <div className="row justify-content-center">
+
           <div className="col-lg-6">
 
             <div className="card shadow-lg border-0 rounded-4">
+
               <div className="card-body p-4">
 
                 <h2 className="text-center text-primary fw-bold mb-4">
@@ -51,6 +54,7 @@ function UserDashboard() {
 
                 <div className="d-grid gap-3 mt-4">
 
+                  {/* Book Appointment */}
                   <button
                     className="btn btn-primary btn-lg"
                     onClick={() => navigate("/")}
@@ -58,6 +62,7 @@ function UserDashboard() {
                     Book Appointment
                   </button>
 
+                  {/* My Appointments */}
                   <button
                     className="btn btn-outline-primary btn-lg"
                     onClick={() => navigate("/my-appointments")}
@@ -65,6 +70,15 @@ function UserDashboard() {
                     My Appointments
                   </button>
 
+                  {/* Apply as Doctor */}
+                  <button
+                    className="btn btn-success btn-lg"
+                    onClick={() => navigate("/apply-doctor")}
+                  >
+                    Apply as Doctor
+                  </button>
+
+                  {/* Logout */}
                   <button
                     className="btn btn-danger btn-lg"
                     onClick={handleLogout}
@@ -75,10 +89,13 @@ function UserDashboard() {
                 </div>
 
               </div>
+
             </div>
 
           </div>
+
         </div>
+
       </div>
 
       <Footer />
