@@ -15,7 +15,7 @@ router.post("/apply", authMiddleware, applyDoctorController);
 // Get Doctor Profile
 router.get("/profile", authMiddleware, getDoctorProfileController);
 
-// Get All Approved Doctors
-router.get("/all", authMiddleware, getAllDoctorsController);
+// Get All Approved Doctors (Public)
+router.get("/all", getAllDoctorsController);
 
 module.exports = router;

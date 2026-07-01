@@ -6,7 +6,10 @@ const Doctor = require("../models/Doctor");
 // ======================================
 const bookAppointmentController = async (req, res) => {
   try {
-    const appointment = new Appointment(req.body);
+    const appointment = new Appointment({
+  ...req.body,
+  userId: req.user._id,
+});
 
     appointment.status = "Pending";
 
@@ -130,3 +133,4 @@ module.exports = {
   getDoctorAppointmentsController,
   updateAppointmentStatusController,
 };
+
