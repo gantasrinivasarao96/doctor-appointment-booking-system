@@ -6,6 +6,24 @@ const Doctor = require("../models/Doctor");
 // ======================================
 const bookAppointmentController = async (req, res) => {
   try {
+    const {
+      doctorId,
+      appointmentDate,
+      appointmentTime,
+    } = req.body;
+
+    const existingAppointment = await Appointment.findOne({
+      doctorId,
+      appointmentDate,
+      appointmentTime,
+    });
+
+    if (existingAppointment) {
+      return res.status(400).json({
+        success: false,
+        message: "This appointment slot is already booked.",
+      });
+    }
     const appointment = new Appointment({
   ...req.body,
   userId: req.user._id,
