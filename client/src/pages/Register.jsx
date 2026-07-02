@@ -14,15 +14,27 @@ function Register() {
     password: "",
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const handleChange = (e) => {
+    let { name, value } = e.target;
+
+    if (name === "phone") {
+      value = value.replace(/\D/g, "");
+      value = value.slice(0, 10);
+    }
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    setLoading(true);
 
     try {
       const { data } = await API.post("/auth/register", formData);
@@ -37,6 +49,8 @@ function Register() {
       alert(
         error.response?.data?.message || "Registration Failed"
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,62 +74,104 @@ function Register() {
                 <form onSubmit={handleSubmit}>
 
                   <div className="mb-3">
-                    <label>Name</label>
+                    <label className="form-label">
+                      Full Name
+                    </label>
 
                     <input
                       type="text"
                       name="name"
                       className="form-control"
+                      placeholder="Enter your full name"
                       value={formData.name}
                       onChange={handleChange}
+                      autoComplete="name"
                       required
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label>Email</label>
+                    <label className="form-label">
+                      Email
+                    </label>
 
                     <input
                       type="email"
                       name="email"
                       className="form-control"
+                      placeholder="example@gmail.com"
                       value={formData.email}
                       onChange={handleChange}
+                      autoComplete="email"
                       required
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label>Phone</label>
+                    <label className="form-label">
+                      Phone Number
+                    </label>
 
                     <input
-                      type="text"
+                      type="tel"
                       name="phone"
                       className="form-control"
+                      placeholder="Enter the phone number"
                       value={formData.phone}
                       onChange={handleChange}
+                      pattern="[6-9][0-9]{9}"
+                      maxLength={10}
+                      autoComplete="tel"
                       required
                     />
                   </div>
 
-                  <div className="mb-3">
-                    <label>Password</label>
+                  <div className="mb-4">
+                    <label className="form-label">
+                      Password
+                    </label>
 
-                    <input
-                      type="password"
-                      name="password"
-                      className="form-control"
-                      value={formData.password}
-                      onChange={handleChange}
-                      required
-                    />
+                    <div className="position-relative">
+
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        className="form-control pe-5"
+                        placeholder="Create password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        minLength={6}
+                        autoComplete="new-password"
+                        required
+                      />
+
+                      <span
+                        className="material-icons position-absolute top-50 end-0 translate-middle-y me-3"
+                        style={{
+                          cursor: "pointer",
+                          userSelect: "none",
+                        }}
+                        onClick={() =>
+                          setShowPassword(!showPassword)
+                        }
+                      >
+                        {showPassword
+                          ? "visibility_off"
+                          : "visibility"}
+                      </span>
+
+                    </div>
+
                   </div>
 
                   <button
-                    className="btn btn-primary w-100"
                     type="submit"
+                    className="btn btn-primary w-100"
+                    disabled={loading}
                   >
-                    Register
+                    {loading
+                      ? "Registering..."
+                      : "Register"}
                   </button>
 
                 </form>
