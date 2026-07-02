@@ -4,39 +4,28 @@ import Footer from "../components/Footer";
 import API from "../services/api";
 
 function MyAppointments() {
-
-  // Stores all appointments received from the backend
   const [appointments, setAppointments] = useState([]);
-
-  // Used to show Loading... until the API finishes
   const [loading, setLoading] = useState(true);
 
-  // Runs automatically when this page opens
   useEffect(() => {
     fetchAppointments();
   }, []);
 
-  // Fetch appointments from backend
   const fetchAppointments = async () => {
     try {
-
-      // Read JWT token saved during login
       const token = localStorage.getItem("token");
 
-      // Call backend API
       const { data } = await API.get("/appointment/user", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      // If backend returns success
       if (data.success) {
         setAppointments(data.appointments);
       }
 
     } catch (error) {
-
       console.error(error);
 
       alert(
@@ -45,48 +34,162 @@ function MyAppointments() {
       );
 
     } finally {
-
-      // Stop loading
       setLoading(false);
-
     }
   };
 
+  const total = appointments.length;
+
+  const pending = appointments.filter(
+    (appointment) => appointment.status === "Pending"
+  ).length;
+
+  const approved = appointments.filter(
+    (appointment) => appointment.status === "Approved"
+  ).length;
+
+  const completed = appointments.filter(
+    (appointment) => appointment.status === "Completed"
+  ).length;
+
+  const rejected = appointments.filter(
+    (appointment) => appointment.status === "Rejected"
+  ).length;
+
   return (
     <>
-      {/* Navbar */}
       <Navbar />
 
       <div className="container py-5">
+        <div className="text-center mb-5">
 
-        {/* Page Heading */}
-        <h2 className="text-center text-primary fw-bold mb-4">
-          My Appointments
-        </h2>
+          <h2 className="text-primary fw-bold">
+            My Appointments
+          </h2>
 
-        {/* Loading Screen */}
+          <p className="text-muted">
+            Track all your appointments in one place
+          </p>
+
+        </div>
+
+        <div className="row g-4 mb-5">
+
+          <div className="col-lg col-md-4 col-sm-6">
+
+            <div className="card shadow border-0 text-center h-100">
+
+              <div className="card-body">
+
+                <h1 className="text-primary fw-bold">
+                  {total}
+                </h1>
+
+                <h5>Total</h5>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div className="col-lg col-md-4 col-sm-6">
+
+            <div className="card shadow border-0 text-center h-100">
+
+              <div className="card-body">
+
+                <h1 className="text-warning fw-bold">
+                  {pending}
+                </h1>
+
+                <h5>Pending</h5>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div className="col-lg col-md-4 col-sm-6">
+
+            <div className="card shadow border-0 text-center h-100">
+
+              <div className="card-body">
+
+                <h1 className="text-success fw-bold">
+                  {approved}
+                </h1>
+
+                <h5>Approved</h5>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div className="col-lg col-md-4 col-sm-6">
+
+            <div className="card shadow border-0 text-center h-100">
+
+              <div className="card-body">
+
+                <h1 className="text-info fw-bold">
+                  {completed}
+                </h1>
+
+                <h5>Completed</h5>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div className="col-lg col-md-4 col-sm-6">
+
+            <div className="card shadow border-0 text-center h-100">
+
+              <div className="card-body">
+
+                <h1 className="text-danger fw-bold">
+                  {rejected}
+                </h1>
+
+                <h5>Rejected</h5>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
         {loading ? (
 
-          <h5 className="text-center">
-            Loading...
-          </h5>
+          <div className="text-center py-5">
+
+            <h4>Loading appointments...</h4>
+
+          </div>
 
         ) : appointments.length === 0 ? (
 
-          // No appointments found
           <div className="alert alert-warning text-center">
+
             No appointments found.
+
           </div>
 
         ) : (
 
-          // Display all appointments
           <div className="row">
-
             {appointments.map((appointment) => (
 
               <div
-                className="col-md-6 col-lg-4 mb-4"
+                className="col-lg-6 mb-4"
                 key={appointment._id}
               >
 
@@ -94,52 +197,99 @@ function MyAppointments() {
 
                   <div className="card-body">
 
-                    {/* Doctor Name */}
-                    <h4 className="text-primary">
-                      {appointment.doctorId?.fullName}
+                    <h4 className="text-primary fw-bold">
+                      👨‍⚕️ {appointment.doctorId?.fullName}
                     </h4>
 
-                    {/* Doctor Specialization */}
+                    <hr />
+
                     <p>
-                      <strong>Specialization:</strong>{" "}
+                      <strong>📧 Email:</strong>{" "}
+                      {appointment.doctorId?.email}
+                    </p>
+
+                    <p>
+                      <strong>🩺 Specialization:</strong>{" "}
                       {appointment.doctorId?.specialization}
                     </p>
 
-                    {/* Appointment Date */}
                     <p>
-                      <strong>Date:</strong>{" "}
+                      <strong>💰 Consultation Fee:</strong>{" "}
+                      ₹{appointment.doctorId?.fees}
+                    </p>
+
+                    <p>
+                      <strong>📍 Address:</strong>{" "}
+                      {appointment.doctorId?.address}
+                    </p>
+
+                    <p>
+                      <strong>📅 Appointment Date:</strong>{" "}
                       {appointment.appointmentDate}
                     </p>
 
-                    {/* Appointment Time */}
                     <p>
-                      <strong>Time:</strong>{" "}
-                      {new Date(
-                        `1970-01-01T${appointment.appointmentTime}`
-                      ).toLocaleTimeString([], {
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
+                      <strong>🕒 Appointment Time:</strong>{" "}
+                      {appointment.appointmentTime}
                     </p>
 
-                    {/* Appointment Status */}
                     <p>
                       <strong>Status:</strong>{" "}
 
                       <span
                         className={
                           appointment.status === "Approved"
-                            ? "text-success fw-bold"
+                            ? "badge bg-success"
                             : appointment.status === "Rejected"
-                            ? "text-danger fw-bold"
-                            : "text-warning fw-bold"
+                            ? "badge bg-danger"
+                            : appointment.status === "Completed"
+                            ? "badge bg-info"
+                            : "badge bg-warning text-dark"
                         }
                       >
                         {appointment.status}
                       </span>
 
                     </p>
+                    <div className="mt-4">
+
+                      {appointment.status === "Pending" && (
+                        <button
+                          className="btn btn-warning w-100"
+                          disabled
+                        >
+                          Waiting for Doctor Approval
+                        </button>
+                      )}
+
+                      {appointment.status === "Approved" && (
+                        <button
+                          className="btn btn-success w-100"
+                          disabled
+                        >
+                          Appointment Approved
+                        </button>
+                      )}
+
+                      {appointment.status === "Completed" && (
+                        <button
+                          className="btn btn-info w-100"
+                          disabled
+                        >
+                          Appointment Completed
+                        </button>
+                      )}
+
+                      {appointment.status === "Rejected" && (
+                        <button
+                          className="btn btn-danger w-100"
+                          disabled
+                        >
+                          Appointment Rejected
+                        </button>
+                      )}
+
+                    </div>
 
                   </div>
 
@@ -155,8 +305,8 @@ function MyAppointments() {
 
       </div>
 
-      {/* Footer */}
       <Footer />
+
     </>
   );
 }
