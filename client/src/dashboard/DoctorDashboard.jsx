@@ -26,9 +26,10 @@ function DoctorDashboard() {
       }
     } catch (error) {
       console.error(error);
+
       alert(
         error.response?.data?.message ||
-          "Failed to load appointments"
+        "Failed to load appointments"
       );
     } finally {
       setLoading(false);
@@ -54,19 +55,30 @@ function DoctorDashboard() {
       fetchAppointments();
     } catch (error) {
       console.error(error);
+
       alert(
         error.response?.data?.message ||
-          "Failed to update appointment"
+        "Failed to update appointment"
       );
     }
   };
 
+  const total = appointments.length;
+
   const pending = appointments.filter(
-    (a) => a.status === "Pending"
+    (appointment) => appointment.status === "Pending"
   ).length;
 
   const approved = appointments.filter(
-    (a) => a.status === "Approved"
+    (appointment) => appointment.status === "Approved"
+  ).length;
+
+  const completed = appointments.filter(
+    (appointment) => appointment.status === "Completed"
+  ).length;
+
+  const rejected = appointments.filter(
+    (appointment) => appointment.status === "Rejected"
   ).length;
 
   return (
@@ -74,32 +86,31 @@ function DoctorDashboard() {
       <Navbar />
 
       <div className="container py-5">
-
         <div className="text-center mb-5">
           <h2 className="text-primary fw-bold">
             Doctor Dashboard
           </h2>
 
           <p className="text-muted">
-            Welcome, Doctor
+            Manage your appointments efficiently
           </p>
         </div>
 
         <div className="row g-4 mb-5">
 
-          <div className="col-md-4">
-            <div className="card shadow border-0 text-center">
+          <div className="col-lg col-md-4 col-sm-6">
+            <div className="card shadow border-0 text-center h-100">
               <div className="card-body">
                 <h1 className="text-primary fw-bold">
-                  {appointments.length}
+                  {total}
                 </h1>
-                <h5>Total Appointments</h5>
+                <h5>Total</h5>
               </div>
             </div>
           </div>
 
-          <div className="col-md-4">
-            <div className="card shadow border-0 text-center">
+          <div className="col-lg col-md-4 col-sm-6">
+            <div className="card shadow border-0 text-center h-100">
               <div className="card-body">
                 <h1 className="text-warning fw-bold">
                   {pending}
@@ -109,8 +120,8 @@ function DoctorDashboard() {
             </div>
           </div>
 
-          <div className="col-md-4">
-            <div className="card shadow border-0 text-center">
+          <div className="col-lg col-md-4 col-sm-6">
+            <div className="card shadow border-0 text-center h-100">
               <div className="card-body">
                 <h1 className="text-success fw-bold">
                   {approved}
@@ -120,13 +131,34 @@ function DoctorDashboard() {
             </div>
           </div>
 
+          <div className="col-lg col-md-4 col-sm-6">
+            <div className="card shadow border-0 text-center h-100">
+              <div className="card-body">
+                <h1 className="text-info fw-bold">
+                  {completed}
+                </h1>
+                <h5>Completed</h5>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-lg col-md-4 col-sm-6">
+            <div className="card shadow border-0 text-center h-100">
+              <div className="card-body">
+                <h1 className="text-danger fw-bold">
+                  {rejected}
+                </h1>
+                <h5>Rejected</h5>
+              </div>
+            </div>
+          </div>
         </div>
 
         {loading ? (
 
-          <h4 className="text-center">
-            Loading...
-          </h4>
+          <div className="text-center py-5">
+            <h4>Loading appointments...</h4>
+          </div>
 
         ) : appointments.length === 0 ? (
 
@@ -137,7 +169,6 @@ function DoctorDashboard() {
         ) : (
 
           <div className="row">
-
             {appointments.map((appointment) => (
 
               <div
@@ -150,8 +181,10 @@ function DoctorDashboard() {
                   <div className="card-body">
 
                     <h4 className="text-primary fw-bold">
-                      {appointment.userId?.name}
+                      👤 {appointment.userId?.name}
                     </h4>
+
+                    <hr />
 
                     <p>
                       <strong>Email:</strong>{" "}
@@ -159,12 +192,12 @@ function DoctorDashboard() {
                     </p>
 
                     <p>
-                      <strong>Date:</strong>{" "}
+                      <strong>Appointment Date:</strong>{" "}
                       {appointment.appointmentDate}
                     </p>
 
                     <p>
-                      <strong>Time:</strong>{" "}
+                      <strong>Appointment Time:</strong>{" "}
                       {appointment.appointmentTime}
                     </p>
 
@@ -174,10 +207,12 @@ function DoctorDashboard() {
                       <span
                         className={
                           appointment.status === "Approved"
-                            ? "text-success fw-bold"
+                            ? "badge bg-success"
                             : appointment.status === "Rejected"
-                            ? "text-danger fw-bold"
-                            : "text-warning fw-bold"
+                            ? "badge bg-danger"
+                            : appointment.status === "Completed"
+                            ? "badge bg-info"
+                            : "badge bg-warning text-dark"
                         }
                       >
                         {appointment.status}
@@ -190,7 +225,7 @@ function DoctorDashboard() {
                       <div className="d-flex gap-2 mt-3">
 
                         <button
-                          className="btn btn-success"
+                          className="btn btn-success flex-fill"
                           onClick={() =>
                             updateStatus(
                               appointment._id,
@@ -198,11 +233,11 @@ function DoctorDashboard() {
                             )
                           }
                         >
-                          Approve
+                           Approve
                         </button>
 
                         <button
-                          className="btn btn-danger"
+                          className="btn btn-danger flex-fill"
                           onClick={() =>
                             updateStatus(
                               appointment._id,
@@ -210,7 +245,27 @@ function DoctorDashboard() {
                             )
                           }
                         >
-                          Reject
+                           Reject
+                        </button>
+
+                      </div>
+
+                    )}
+
+                    {appointment.status === "Approved" && (
+
+                      <div className="mt-3">
+
+                        <button
+                          className="btn btn-info w-100"
+                          onClick={() =>
+                            updateStatus(
+                              appointment._id,
+                              "Completed"
+                            )
+                          }
+                        >
+                          ✔ Mark as Completed
                         </button>
 
                       </div>
@@ -224,7 +279,6 @@ function DoctorDashboard() {
               </div>
 
             ))}
-
           </div>
 
         )}
