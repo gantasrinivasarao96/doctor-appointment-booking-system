@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+
 import API from "../services/api";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -25,29 +27,44 @@ function Register() {
       value = value.slice(0, 10);
     }
 
-    setFormData({
-      ...formData,
+    setFormData((previousData) => ({
+      ...previousData,
       [name]: value,
-    });
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (loading) {
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { data } = await API.post("/auth/register", formData);
-
-      alert(data.message);
+      const { data } = await API.post(
+        "/auth/register",
+        formData
+      );
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
 
-      navigate("/user/dashboard");
+      toast.success(
+        data.message || "Registration successful"
+      );
+
+      navigate("/user/dashboard", {
+        replace: true,
+      });
     } catch (error) {
-      alert(
-        error.response?.data?.message || "Registration Failed"
+      toast.error(
+        error.response?.data?.message ||
+          "Registration failed"
       );
     } finally {
       setLoading(false);
@@ -60,19 +77,14 @@ function Register() {
 
       <div className="container py-5">
         <div className="row justify-content-center">
-
           <div className="col-md-6">
-
             <div className="card shadow-lg border-0 rounded-4">
-
               <div className="card-body p-4">
-
                 <h2 className="text-center text-primary mb-4">
                   Register
                 </h2>
 
                 <form onSubmit={handleSubmit}>
-
                   <div className="mb-3">
                     <label className="form-label">
                       Full Name
@@ -132,9 +144,12 @@ function Register() {
                     </label>
 
                     <div className="position-relative">
-
                       <input
-                        type={showPassword ? "text" : "password"}
+                        type={
+                          showPassword
+                            ? "text"
+                            : "password"
+                        }
                         name="password"
                         className="form-control pe-5"
                         placeholder="Create password"
@@ -152,16 +167,17 @@ function Register() {
                           userSelect: "none",
                         }}
                         onClick={() =>
-                          setShowPassword(!showPassword)
+                          setShowPassword(
+                            (currentValue) =>
+                              !currentValue
+                          )
                         }
                       >
                         {showPassword
                           ? "visibility_off"
                           : "visibility"}
                       </span>
-
                     </div>
-
                   </div>
 
                   <button
@@ -173,7 +189,6 @@ function Register() {
                       ? "Registering..."
                       : "Register"}
                   </button>
-
                 </form>
 
                 <p className="text-center mt-3">
@@ -182,13 +197,9 @@ function Register() {
                     Login
                   </Link>
                 </p>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
       </div>
 

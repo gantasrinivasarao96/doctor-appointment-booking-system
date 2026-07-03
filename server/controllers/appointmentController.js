@@ -1,154 +1,954 @@
 const Appointment = require("../models/Appointment");
 const Doctor = require("../models/Doctor");
 
-// ======================================
-// Book Appointment
-// ======================================
-const bookAppointmentController = async (req, res) => {
-  try {
-    const {
-      doctorId,
-      appointmentDate,
-      appointmentTime,
-    } = req.body;
 
-    const existingAppointment = await Appointment.findOne({
-      doctorId,
-      appointmentDate,
-      appointmentTime,
-    });
+// ======================================
+// Constants
+// ======================================
+const DAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
-    if (existingAppointment) {
-      return res.status(400).json({
+const ACTIVE_STATUSES = [
+  "Pending",
+  "Approved",
+];
+
+
+// ======================================
+// Normalize Time to HH:mm
+//
+// Supports:
+// 09:00
+// 17:00
+// 09:00 AM
+// 05:00 PM
+// ======================================
+const normalizeTime = (timeString) => {
+  if (
+    !timeString ||
+    typeof timeString !== "string"
+  ) {
+    return null;
+  }
+
+  const value = timeString.trim();
+
+  const twentyFourHourMatch =
+    value.match(
+      /^([01]\d|2[0-3]):([0-5]\d)$/
+    );
+
+  if (twentyFourHourMatch) {
+    return `${twentyFourHourMatch[1]}:${twentyFourHourMatch[2]}`;
+  }
+
+  const twelveHourMatch =
+    value.match(
+      /^(\d{1,2}):([0-5]\d)\s*(AM|PM)$/i
+    );
+
+  if (!twelveHourMatch) {
+    return null;
+  }
+
+  let hour = Number(
+    twelveHourMatch[1]
+  );
+
+  const minute =
+    twelveHourMatch[2];
+
+  const period =
+    twelveHourMatch[3].toUpperCase();
+
+  if (hour < 1 || hour > 12) {
+    return null;
+  }
+
+  if (
+    period === "AM" &&
+    hour === 12
+  ) {
+    hour = 0;
+  }
+
+  if (
+    period === "PM" &&
+    hour !== 12
+  ) {
+    hour += 12;
+  }
+
+  return `${String(hour).padStart(
+    2,
+    "0"
+  )}:${minute}`;
+};
+
+
+// ======================================
+// Convert HH:mm to total minutes
+// ======================================
+const timeToMinutes = (time) => {
+  const normalized =
+    normalizeTime(time);
+
+  if (!normalized) {
+    return null;
+  }
+
+  const [hour, minute] =
+    normalized
+      .split(":")
+      .map(Number);
+
+  return hour * 60 + minute;
+};
+
+
+// ======================================
+// Convert total minutes to HH:mm
+// ======================================
+const minutesToTime = (
+  totalMinutes
+) => {
+  const hour = Math.floor(
+    totalMinutes / 60
+  );
+
+  const minute =
+    totalMinutes % 60;
+
+  return `${String(hour).padStart(
+    2,
+    "0"
+  )}:${String(minute).padStart(
+    2,
+    "0"
+  )}`;
+};
+
+
+// ======================================
+// Validate YYYY-MM-DD
+// ======================================
+const parseAppointmentDate = (
+  appointmentDate
+) => {
+  if (
+    !appointmentDate ||
+    typeof appointmentDate !== "string"
+  ) {
+    return null;
+  }
+
+  const match =
+    appointmentDate.match(
+      /^(\d{4})-(\d{2})-(\d{2})$/
+    );
+
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  const date = new Date(
+    year,
+    month - 1,
+    day
+  );
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return {
+    year,
+    month,
+    day,
+    date,
+  };
+};
+
+
+// ======================================
+// Get local YYYY-MM-DD
+// ======================================
+const getLocalDateString = (
+  date
+) => {
+  return [
+    date.getFullYear(),
+
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0"),
+
+    String(
+      date.getDate()
+    ).padStart(2, "0"),
+  ].join("-");
+};
+
+
+// ======================================
+// Generate slots from one session
+//
+// Example:
+// 09:00 -> 11:00
+// duration 30
+//
+// Result:
+// 09:00
+// 09:30
+// 10:00
+// 10:30
+// ======================================
+const generateSessionSlots = (
+  startTime,
+  endTime,
+  slotDuration
+) => {
+  const startMinutes =
+    timeToMinutes(startTime);
+
+  const endMinutes =
+    timeToMinutes(endTime);
+
+  if (
+    startMinutes === null ||
+    endMinutes === null ||
+    startMinutes >= endMinutes
+  ) {
+    return [];
+  }
+
+  const slots = [];
+
+  for (
+    let current = startMinutes;
+    current + slotDuration <=
+      endMinutes;
+    current += slotDuration
+  ) {
+    slots.push(
+      minutesToTime(current)
+    );
+  }
+
+  return slots;
+};
+
+
+// ======================================
+// Generate doctor's scheduled slots
+// for a selected date
+// ======================================
+const generateDoctorSlotsForDate = (
+  doctor,
+  appointmentDate
+) => {
+  const parsedDate =
+    parseAppointmentDate(
+      appointmentDate
+    );
+
+  if (!parsedDate) {
+    return {
+      valid: false,
+      message:
+        "Invalid appointment date.",
+      slots: [],
+      dayName: null,
+    };
+  }
+
+  const selectedDate =
+    parsedDate.date;
+
+  selectedDate.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  const today = new Date();
+
+  today.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  if (selectedDate < today) {
+    return {
+      valid: false,
+      message:
+        "Appointment date cannot be in the past.",
+      slots: [],
+      dayName: null,
+    };
+  }
+
+  if (
+    Array.isArray(
+      doctor.blockedDates
+    ) &&
+    doctor.blockedDates.includes(
+      appointmentDate
+    )
+  ) {
+    return {
+      valid: true,
+      message:
+        "Doctor is unavailable on this date.",
+      slots: [],
+      dayName:
+        DAY_NAMES[
+          selectedDate.getDay()
+        ],
+      blocked: true,
+    };
+  }
+
+  const dayName =
+    DAY_NAMES[
+      selectedDate.getDay()
+    ];
+
+  const dayAvailability =
+    (
+      doctor.weeklyAvailability ||
+      []
+    ).find(
+      (item) =>
+        item.day === dayName
+    );
+
+  if (
+    !dayAvailability ||
+    !dayAvailability.enabled ||
+    !Array.isArray(
+      dayAvailability.sessions
+    ) ||
+    dayAvailability.sessions.length ===
+      0
+  ) {
+    return {
+      valid: true,
+      message:
+        `Doctor is not available on ${dayName}.`,
+      slots: [],
+      dayName,
+      blocked: false,
+    };
+  }
+
+  const slotDuration =
+    Number(
+      doctor.slotDuration
+    );
+
+  if (
+    ![15, 20, 30, 45, 60].includes(
+      slotDuration
+    )
+  ) {
+    return {
+      valid: false,
+      message:
+        "Doctor has an invalid slot duration configuration.",
+      slots: [],
+      dayName,
+    };
+  }
+
+  const generatedSlots = [];
+
+  for (
+    const session of
+    dayAvailability.sessions
+  ) {
+    const sessionSlots =
+      generateSessionSlots(
+        session.startTime,
+        session.endTime,
+        slotDuration
+      );
+
+    generatedSlots.push(
+      ...sessionSlots
+    );
+  }
+
+  const uniqueSlots = [
+    ...new Set(generatedSlots),
+  ].sort();
+
+  return {
+    valid: true,
+    message:
+      uniqueSlots.length > 0
+        ? "Schedule generated successfully."
+        : `Doctor is not available on ${dayName}.`,
+    slots: uniqueSlots,
+    dayName,
+    blocked: false,
+  };
+};
+
+
+// ======================================
+// Remove booked and past slots
+// ======================================
+const getAvailableSlots = async (
+  doctor,
+  appointmentDate
+) => {
+  const scheduleResult =
+    generateDoctorSlotsForDate(
+      doctor,
+      appointmentDate
+    );
+
+  if (!scheduleResult.valid) {
+    return scheduleResult;
+  }
+
+  if (
+    scheduleResult.slots.length === 0
+  ) {
+    return {
+      ...scheduleResult,
+      bookedSlots: [],
+      availableSlots: [],
+    };
+  }
+
+  const bookedAppointments =
+    await Appointment.find({
+      doctorId: doctor._id,
+      appointmentDate,
+      status: {
+        $in: ACTIVE_STATUSES,
+      },
+    }).select("appointmentTime");
+
+  const bookedSlots = [
+    ...new Set(
+      bookedAppointments
+        .map((appointment) =>
+          normalizeTime(
+            appointment.appointmentTime
+          )
+        )
+        .filter(Boolean)
+    ),
+  ];
+
+  const now = new Date();
+
+  const todayString =
+    getLocalDateString(now);
+
+  const availableSlots =
+    scheduleResult.slots.filter(
+      (slot) => {
+        if (
+          bookedSlots.includes(slot)
+        ) {
+          return false;
+        }
+
+        if (
+          appointmentDate !==
+          todayString
+        ) {
+          return true;
+        }
+
+        const [hour, minute] =
+          slot
+            .split(":")
+            .map(Number);
+
+        const slotDate = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          hour,
+          minute,
+          0,
+          0
+        );
+
+        return slotDate > now;
+      }
+    );
+
+  return {
+    ...scheduleResult,
+    bookedSlots,
+    availableSlots,
+  };
+};
+
+
+// ======================================
+// Get Available Slots Controller
+// ======================================
+const getAvailableSlotsController =
+  async (req, res) => {
+    try {
+      const {
+        doctorId,
+        appointmentDate,
+      } = req.query;
+
+      if (
+        !doctorId ||
+        !appointmentDate
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Doctor and appointment date are required.",
+        });
+      }
+
+      const doctor =
+        await Doctor.findById(
+          doctorId
+        );
+
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Doctor not found.",
+        });
+      }
+
+      if (
+        doctor.status !== "approved"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Doctor is not currently available for booking.",
+        });
+      }
+
+      const result =
+        await getAvailableSlots(
+          doctor,
+          appointmentDate
+        );
+
+      if (!result.valid) {
+        return res.status(400).json({
+          success: false,
+          message: result.message,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+
+        message: result.message,
+
+        dayName:
+          result.dayName,
+
+        blocked:
+          Boolean(result.blocked),
+
+        slotDuration:
+          doctor.slotDuration,
+
+        doctorSlots:
+          result.slots,
+
+        bookedSlots:
+          result.bookedSlots ||
+          [],
+
+        availableSlots:
+          result.availableSlots ||
+          [],
+      });
+    } catch (error) {
+      console.error(
+        "Get available slots error:",
+        error
+      );
+
+      return res.status(500).json({
         success: false,
-        message: "This appointment slot is already booked.",
+        message:
+          "Failed to fetch available slots.",
+        error: error.message,
       });
     }
-    const appointment = new Appointment({
-  ...req.body,
-  userId: req.user._id,
-});
+  };
 
-    appointment.status = "Pending";
-
-    await appointment.save();
-
-    res.status(201).json({
-      success: true,
-      message: "Appointment booked successfully",
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to book appointment",
-      error: error.message,
-    });
-  }
-};
 
 // ======================================
-// Get User Appointments
+// Book Appointment Controller
 // ======================================
-const getUserAppointmentsController = async (req, res) => {
-  try {
-    const appointments = await Appointment.find({
-      userId: req.user._id,
-    }).populate("doctorId");
+const bookAppointmentController =
+  async (req, res) => {
+    try {
+      const {
+        doctorId,
+        appointmentDate,
+        appointmentTime,
+        medicalDocument,
+      } = req.body;
 
-    res.status(200).json({
-      success: true,
-      total: appointments.length,
-      appointments,
-    });
-  } catch (error) {
-    console.error(error);
+      if (
+        !doctorId ||
+        !appointmentDate ||
+        !appointmentTime
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Doctor, date and time are required.",
+        });
+      }
 
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch user appointments",
-      error: error.message,
-    });
-  }
-};
+      const parsedDate =
+        parseAppointmentDate(
+          appointmentDate
+        );
+
+      if (!parsedDate) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid appointment date.",
+        });
+      }
+
+      const normalizedAppointmentTime =
+        normalizeTime(
+          appointmentTime
+        );
+
+      if (
+        !normalizedAppointmentTime
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid appointment time.",
+        });
+      }
+
+      const doctor =
+        await Doctor.findById(
+          doctorId
+        );
+
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Doctor not found.",
+        });
+      }
+
+      if (
+        doctor.status !== "approved"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This doctor is not available for booking.",
+        });
+      }
+
+      const result =
+        await getAvailableSlots(
+          doctor,
+          appointmentDate
+        );
+
+      if (!result.valid) {
+        return res.status(400).json({
+          success: false,
+          message: result.message,
+        });
+      }
+
+      if (
+        !result.slots.includes(
+          normalizedAppointmentTime
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Selected time is outside the doctor's working schedule.",
+        });
+      }
+
+      if (
+        !result.availableSlots.includes(
+          normalizedAppointmentTime
+        )
+      ) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "This time slot is no longer available. Please select another slot.",
+        });
+      }
+
+      const appointment =
+        await Appointment.create({
+          doctorId,
+
+          userId:
+            req.user._id,
+
+          appointmentDate,
+
+          appointmentTime:
+            normalizedAppointmentTime,
+
+          medicalDocument:
+            medicalDocument || "",
+
+          status: "Pending",
+        });
+
+      return res.status(201).json({
+        success: true,
+
+        message:
+          "Appointment booked successfully.",
+
+        appointment,
+      });
+    } catch (error) {
+      console.error(
+        "Book appointment error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to book appointment.",
+        error: error.message,
+      });
+    }
+  };
+const getUserAppointmentsController =
+  async (req, res) => {
+    try {
+      const appointments =
+        await Appointment.find({
+          userId: req.user._id,
+        })
+          .populate("doctorId")
+          .sort({
+            appointmentDate: -1,
+            appointmentTime: -1,
+          });
+
+
+      return res.status(200).json({
+        success: true,
+        total: appointments.length,
+        appointments,
+      });
+
+    } catch (error) {
+      console.error(
+        "Get user appointments error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to fetch user appointments.",
+        error: error.message,
+      });
+    }
+  };
+
 
 // ======================================
 // Get Doctor Appointments
 // ======================================
-const getDoctorAppointmentsController = async (req, res) => {
-  try {
-    const doctor = await Doctor.findOne({
-      userId: req.user._id,
-    });
+const getDoctorAppointmentsController =
+  async (req, res) => {
+    try {
+      const doctor =
+        await Doctor.findOne({
+          userId: req.user._id,
+        });
 
-    if (!doctor) {
-      return res.status(404).json({
+
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Doctor profile not found.",
+        });
+      }
+
+
+      const appointments =
+        await Appointment.find({
+          doctorId: doctor._id,
+        })
+          .populate(
+            "userId",
+            "-password"
+          )
+          .sort({
+            appointmentDate: 1,
+            appointmentTime: 1,
+          });
+
+
+      return res.status(200).json({
+        success: true,
+        total: appointments.length,
+        appointments,
+      });
+
+    } catch (error) {
+      console.error(
+        "Get doctor appointments error:",
+        error
+      );
+
+      return res.status(500).json({
         success: false,
-        message: "Doctor profile not found",
+        message:
+          "Failed to fetch doctor appointments.",
+        error: error.message,
       });
     }
+  };
 
-    const appointments = await Appointment.find({
-      doctorId: doctor._id,
-    }).populate("userId", "-password");
-
-    res.status(200).json({
-      success: true,
-      total: appointments.length,
-      appointments,
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch doctor appointments",
-      error: error.message,
-    });
-  }
-};
 
 // ======================================
 // Update Appointment Status
 // ======================================
-const updateAppointmentStatusController = async (req, res) => {
-  try {
-    const { status } = req.body;
+const updateAppointmentStatusController =
+  async (req, res) => {
+    try {
+      const { status } = req.body;
 
-    const appointment = await Appointment.findById(req.params.id);
 
-    if (!appointment) {
-      return res.status(404).json({
+      const allowedStatuses = [
+        "Pending",
+        "Approved",
+        "Rejected",
+        "Completed",
+      ];
+
+
+      if (
+        !allowedStatuses.includes(status)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid appointment status.",
+        });
+      }
+
+
+      const doctor =
+        await Doctor.findOne({
+          userId: req.user._id,
+        });
+
+
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Doctor profile not found.",
+        });
+      }
+
+
+      const appointment =
+        await Appointment.findOne({
+          _id: req.params.id,
+          doctorId: doctor._id,
+        });
+
+
+      if (!appointment) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Appointment not found or unauthorized.",
+        });
+      }
+
+
+      appointment.status = status;
+
+      await appointment.save();
+
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Appointment status updated successfully.",
+        appointment,
+      });
+
+    } catch (error) {
+      console.error(
+        "Update appointment error:",
+        error
+      );
+
+      return res.status(500).json({
         success: false,
-        message: "Appointment not found",
+        message:
+          "Failed to update appointment status.",
+        error: error.message,
       });
     }
+  };
 
-    appointment.status = status;
 
-    await appointment.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Appointment status updated successfully",
-      appointment,
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to update appointment status",
-      error: error.message,
-    });
-  }
-};
-
+// ======================================
+// Exports
+// ======================================
 module.exports = {
+  getAvailableSlotsController,
   bookAppointmentController,
   getUserAppointmentsController,
   getDoctorAppointmentsController,
   updateAppointmentStatusController,
 };
-

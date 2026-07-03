@@ -1,9 +1,21 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import FeaturedDoctors from "../components/FeaturedDoctors";
 
 function Home() {
+  const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
+
+  const handleBookAppointment = () => {
+    if (token) {
+      navigate("/doctors");
+    } else {
+      navigate("/login");
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -21,13 +33,22 @@ function Home() {
             </p>
 
             <div className="mt-4">
-              <Link to="/login" className="btn btn-primary btn-lg me-3">
+              <button
+                type="button"
+                onClick={handleBookAppointment}
+                className="btn btn-primary btn-lg me-3"
+              >
                 Book Appointment
-              </Link>
+              </button>
 
-              <Link to="/register" className="btn btn-outline-primary btn-lg">
-                Register
-              </Link>
+              {!token && (
+                <Link
+                  to="/register"
+                  className="btn btn-outline-primary btn-lg"
+                >
+                  Register
+                </Link>
+              )}
             </div>
           </div>
 
@@ -43,14 +64,20 @@ function Home() {
 
       {/* Features Section */}
       <div className="container py-5">
-        <h2 className="text-center text-dark fw-bold mb-5">Why Choose DocBook?</h2>
+        <h2 className="text-center text-dark fw-bold mb-5">
+          Why Choose DocBook?
+        </h2>
 
         <div className="row g-4">
           <div className="col-md-4">
             <div className="card shadow h-100 text-center">
               <div className="card-body">
                 <h1>👨‍⚕️</h1>
-                <h5 className="card-title">Verified Doctors</h5>
+
+                <h5 className="card-title">
+                  Verified Doctors
+                </h5>
+
                 <p className="card-text">
                   Consult experienced and verified doctors from different
                   specialties.
@@ -63,7 +90,11 @@ function Home() {
             <div className="card shadow h-100 text-center">
               <div className="card-body">
                 <h1>📅</h1>
-                <h5 className="card-title">Easy Booking</h5>
+
+                <h5 className="card-title">
+                  Easy Booking
+                </h5>
+
                 <p className="card-text">
                   Book appointments online in just a few clicks.
                 </p>
@@ -75,7 +106,11 @@ function Home() {
             <div className="card shadow h-100 text-center">
               <div className="card-body">
                 <h1>⏰</h1>
-                <h5 className="card-title">24×7 Support</h5>
+
+                <h5 className="card-title">
+                  24×7 Support
+                </h5>
+
                 <p className="card-text">
                   Get assistance anytime with our reliable support team.
                 </p>
@@ -84,11 +119,11 @@ function Home() {
           </div>
         </div>
       </div>
+
       {/* Statistics Section */}
       <div className="bg-primary text-white py-5 mt-5">
         <div className="container">
           <div className="row text-center">
-
             <div className="col-md-4 mb-4">
               <h1 className="fw-bold">500+</h1>
               <h5>Verified Doctors</h5>
@@ -103,11 +138,15 @@ function Home() {
               <h1 className="fw-bold">25K+</h1>
               <h5>Appointments Completed</h5>
             </div>
-
           </div>
         </div>
       </div>
-      <FeaturedDoctors />
+
+      {/* Featured Doctors */}
+      <div id="featured-doctors">
+        <FeaturedDoctors />
+      </div>
+
       <Footer />
     </>
   );

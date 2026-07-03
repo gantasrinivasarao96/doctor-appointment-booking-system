@@ -4,41 +4,41 @@ const authMiddleware = require("../middleware/authMiddleware");
 const {
   applyDoctorController,
   getDoctorProfileController,
+  updateDoctorProfileController,
   getSingleDoctorController,
   getAllDoctorsController,
 } = require("../controllers/doctorController");
 
 const router = express.Router();
 
-// ==========================
-// Apply as Doctor
-// ==========================
+// Apply / Reapply as Doctor
 router.post(
   "/apply",
   authMiddleware,
   applyDoctorController
 );
 
-// ==========================
-// Get Logged-in Doctor Profile
-// ==========================
+// Get logged-in doctor's profile
 router.get(
   "/profile",
   authMiddleware,
   getDoctorProfileController
 );
 
-// ==========================
-// Get All Approved Doctors
-// ==========================
+// Update logged-in doctor's profile
+router.put(
+  "/profile",
+  authMiddleware,
+  updateDoctorProfileController
+);
+
+// Get all approved doctors
 router.get(
   "/all",
   getAllDoctorsController
 );
 
-// ==========================
-// Get Single Doctor by ID
-// ==========================
+// Get one approved doctor by ID
 router.get(
   "/:id",
   getSingleDoctorController

@@ -1,164 +1,1210 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+
+import { toast } from "react-toastify";
+
 import API from "../services/api";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
+
 function BookAppointment() {
   const navigate = useNavigate();
+
   const { doctorId } = useParams();
 
-  const [doctor, setDoctor] = useState(null);
 
-  const [appointmentDate, setAppointmentDate] = useState("");
-  const [appointmentTime, setAppointmentTime] = useState("");
-  const [medicalDocument, setMedicalDocument] = useState(null);
+  // ====================================
+  // Doctor State
+  // ====================================
+  const [doctor, setDoctor] =
+    useState(null);
 
-  useEffect(() => {
-    getDoctor();
-  }, []);
+  const [
+    loadingDoctor,
+    setLoadingDoctor,
+  ] = useState(true);
 
-  const getDoctor = async () => {
-    try {
-      const { data } = await API.get(`/doctor/${doctorId}`);
 
-      if (data.success) {
-        setDoctor(data.doctor);
-      }
-    } catch (error) {
-      console.log(error);
-      alert("Failed to load doctor details");
-    }
+  // ====================================
+  // Appointment State
+  // ====================================
+  const [
+    appointmentDate,
+    setAppointmentDate,
+  ] = useState("");
+
+  const [
+    appointmentTime,
+    setAppointmentTime,
+  ] = useState("");
+
+
+  // ====================================
+  // Slot State
+  // ====================================
+  const [
+    availableSlots,
+    setAvailableSlots,
+  ] = useState([]);
+
+  const [
+    loadingSlots,
+    setLoadingSlots,
+  ] = useState(false);
+
+  const [
+    slotInfo,
+    setSlotInfo,
+  ] = useState({
+    message: "",
+    dayName: "",
+    blocked: false,
+    slotDuration: null,
+  });
+
+
+  // ====================================
+  // Submit State
+  // ====================================
+  const [
+    submitting,
+    setSubmitting,
+  ] = useState(false);
+
+
+  // ====================================
+  // Get Today YYYY-MM-DD
+  // ====================================
+  const getTodayDate = () => {
+    const now = new Date();
+
+    const year =
+      now.getFullYear();
+
+    const month = String(
+      now.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+      now.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
 
-    try {
-      const token = localStorage.getItem("token");
+  // ====================================
+  // Format HH:mm to AM/PM
+  // ====================================
+  const formatTime = (time) => {
+    if (!time) {
+      return "";
+    }
 
-      const { data } = await API.post(
-        "/appointment/book",
+    const [
+      hourString,
+      minute,
+    ] = time.split(":");
+
+    let hour =
+      Number(hourString);
+
+    const period =
+      hour >= 12
+        ? "PM"
+        : "AM";
+
+    hour =
+      hour % 12 || 12;
+
+    return `${String(hour).padStart(
+      2,
+      "0"
+    )}:${minute} ${period}`;
+  };
+
+
+  // ====================================
+  // Format Date
+  // ====================================
+  const formatDate = (dateString) => {
+    if (!dateString) {
+      return "";
+    }
+
+    const [
+      year,
+      month,
+      day,
+    ] = dateString
+      .split("-")
+      .map(Number);
+
+    const date = new Date(
+      year,
+      month - 1,
+      day
+    );
+
+    return date.toLocaleDateString(
+      "en-IN",
+      {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }
+    );
+  };
+
+
+  // ====================================
+  // Reset Slot Information
+  // ====================================
+  const resetSlotState = () => {
+    setAvailableSlots([]);
+
+    setAppointmentTime("");
+
+    setSlotInfo({
+      message: "",
+      dayName: "",
+      blocked: false,
+      slotDuration: null,
+    });
+  };
+
+
+  // ====================================
+  // Load Doctor
+  // ====================================
+  useEffect(() => {
+    let active = true;
+
+
+    const fetchDoctor = async () => {
+      setLoadingDoctor(true);
+
+      try {
+        const { data } =
+          await API.get(
+            `/doctor/${doctorId}`
+          );
+
+
+        if (
+          active &&
+          data.success
+        ) {
+          setDoctor(
+            data.doctor
+          );
+        }
+
+      } catch (error) {
+        console.error(error);
+
+
+        if (active) {
+          setDoctor(null);
+
+          toast.error(
+            error.response?.data
+              ?.message ||
+              "Failed to load doctor details"
+          );
+        }
+
+      } finally {
+        if (active) {
+          setLoadingDoctor(false);
+        }
+      }
+    };
+
+
+    fetchDoctor();
+
+
+    return () => {
+      active = false;
+    };
+
+  }, [doctorId]);
+
+
+  // ====================================
+  // Fetch Available Slots
+  // ====================================
+  const fetchAvailableSlots =
+    useCallback(
+      async (
+        selectedDate,
+        showErrorToast = true
+      ) => {
+        if (!selectedDate) {
+          resetSlotState();
+
+          return;
+        }
+
+
+        setLoadingSlots(true);
+
+        setAppointmentTime("");
+
+
+        try {
+          const token =
+            localStorage.getItem(
+              "token"
+            );
+
+
+          if (!token) {
+            toast.error(
+              "Please login to book an appointment"
+            );
+
+            navigate(
+              "/login",
+              {
+                replace: true,
+              }
+            );
+
+            return;
+          }
+
+
+          const { data } =
+            await API.get(
+              "/appointment/available-slots",
+              {
+                params: {
+                  doctorId,
+                  appointmentDate:
+                    selectedDate,
+                },
+
+                headers: {
+                  Authorization:
+                    `Bearer ${token}`,
+                },
+              }
+            );
+
+
+          if (data.success) {
+            setAvailableSlots(
+              data.availableSlots ||
+                []
+            );
+
+            setSlotInfo({
+              message:
+                data.message || "",
+
+              dayName:
+                data.dayName || "",
+
+              blocked:
+                Boolean(
+                  data.blocked
+                ),
+
+              slotDuration:
+                data.slotDuration ||
+                null,
+            });
+          }
+
+        } catch (error) {
+          console.error(error);
+
+
+          setAvailableSlots([]);
+
+          setSlotInfo({
+            message:
+              error.response?.data
+                ?.message ||
+              "Unable to load available slots.",
+
+            dayName: "",
+
+            blocked: false,
+
+            slotDuration: null,
+          });
+
+
+          if (showErrorToast) {
+            toast.error(
+              error.response?.data
+                ?.message ||
+                "Failed to load available time slots"
+            );
+          }
+
+        } finally {
+          setLoadingSlots(false);
+        }
+      },
+
+      [
+        doctorId,
+        navigate,
+      ]
+    );
+
+
+  // ====================================
+  // Load Slots When Date Changes
+  // ====================================
+  useEffect(() => {
+    if (!appointmentDate) {
+      resetSlotState();
+
+      return;
+    }
+
+
+    fetchAvailableSlots(
+      appointmentDate
+    );
+
+  }, [
+    appointmentDate,
+    fetchAvailableSlots,
+  ]);
+
+
+  // ====================================
+  // Date Change
+  // ====================================
+  const handleDateChange = (
+    event
+  ) => {
+    const selectedDate =
+      event.target.value;
+
+    setAppointmentDate(
+      selectedDate
+    );
+
+    setAppointmentTime("");
+  };
+
+
+  // ====================================
+  // Select Time
+  // ====================================
+  const handleTimeSelect = (
+    time
+  ) => {
+    if (submitting) {
+      return;
+    }
+
+    setAppointmentTime(time);
+  };
+
+
+  // ====================================
+  // Book Appointment
+  // ====================================
+  const handleSubmit = async (
+    event
+  ) => {
+    event.preventDefault();
+
+
+    if (submitting) {
+      return;
+    }
+
+
+    if (!appointmentDate) {
+      toast.error(
+        "Please select an appointment date"
+      );
+
+      return;
+    }
+
+
+    if (!appointmentTime) {
+      toast.error(
+        "Please select an available time slot"
+      );
+
+      return;
+    }
+
+
+    if (
+      !availableSlots.includes(
+        appointmentTime
+      )
+    ) {
+      toast.error(
+        "The selected time slot is no longer available"
+      );
+
+      await fetchAvailableSlots(
+        appointmentDate,
+        false
+      );
+
+      return;
+    }
+
+
+    const token =
+      localStorage.getItem(
+        "token"
+      );
+
+
+    if (!token) {
+      toast.error(
+        "Please login to book an appointment"
+      );
+
+      navigate(
+        "/login",
         {
-          doctorId,
-          appointmentDate,
-          appointmentTime,
-          medicalDocument: "",
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          replace: true,
         }
       );
 
-      alert(data.message);
+      return;
+    }
 
-      navigate("/user/dashboard");
+
+    setSubmitting(true);
+
+
+    try {
+      const { data } =
+        await API.post(
+          "/appointment/book",
+
+          {
+            doctorId,
+
+            appointmentDate,
+
+            appointmentTime,
+
+            medicalDocument: "",
+          },
+
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+
+      toast.success(
+        data.message ||
+          "Appointment booked successfully"
+      );
+
+
+      navigate(
+        "/my-appointments",
+        {
+          replace: true,
+        }
+      );
 
     } catch (error) {
       console.error(error);
 
-      alert(
-        error.response?.data?.message ||
-        "Failed to book appointment"
+
+      toast.error(
+        error.response?.data
+          ?.message ||
+          "Failed to book appointment"
       );
+
+
+      setAppointmentTime("");
+
+
+      await fetchAvailableSlots(
+        appointmentDate,
+        false
+      );
+
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (!doctor) {
+
+  // ====================================
+  // Loading Doctor
+  // ====================================
+  if (loadingDoctor) {
     return (
       <>
         <Navbar />
-        <div className="container text-center py-5">
-          <h3>Loading doctor details...</h3>
-        </div>
+
+        <main className="container py-5">
+
+          <div className="text-center py-5">
+
+            <div
+              className="spinner-border text-primary"
+              role="status"
+            />
+
+            <h5 className="mt-3">
+              Loading doctor details...
+            </h5>
+
+          </div>
+
+        </main>
+
         <Footer />
       </>
     );
   }
 
+
+  // ====================================
+  // Doctor Not Found
+  // ====================================
+  if (!doctor) {
+    return (
+      <>
+        <Navbar />
+
+        <main className="container py-5">
+
+          <div className="row justify-content-center">
+
+            <div className="col-lg-7">
+
+              <div className="alert alert-danger text-center">
+
+                <h5>
+                  Doctor details could not
+                  be loaded.
+                </h5>
+
+                <button
+                  type="button"
+                  className="btn btn-primary mt-3"
+                  onClick={() =>
+                    navigate(
+                      "/doctors"
+                    )
+                  }
+                >
+                  Back to Doctors
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </main>
+
+        <Footer />
+      </>
+    );
+  }
+
+
+  // ====================================
+  // Main UI
+  // ====================================
   return (
     <>
       <Navbar />
 
-      <div className="container py-5">
+
+      <main className="container py-5">
+
         <div className="row justify-content-center">
-          <div className="col-lg-8">
 
-            <div className="card shadow-lg border-0 rounded-4">
-              <div className="card-body p-4">
+          <div className="col-xl-9 col-lg-10">
 
-                <h2 className="text-center text-primary fw-bold mb-4">
-                  Book Appointment
-                </h2>
 
-                <h4>{doctor.fullName}</h4>
+            {/* =================================
+                PAGE TITLE
+            ================================= */}
 
-                <p>
-                  <strong>Specialization:</strong> {doctor.specialization}
-                </p>
+            <div className="text-center mb-4">
 
-                <p>
-                  <strong>Consultation Fee:</strong> ₹{doctor.fees}
-                </p>
+              <h2 className="text-primary fw-bold">
+                Book Appointment
+              </h2>
 
-                <form onSubmit={handleSubmit}>
-                                  <div className="mb-3">
-                    <label className="form-label">
-                      Appointment Date
-                    </label>
+              <p className="text-muted mb-0">
+                Choose a date and select an
+                available appointment time.
+              </p>
 
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={appointmentDate}
-                      onChange={(e) =>
-                        setAppointmentDate(e.target.value)
-                      }
-                      required
-                    />
+            </div>
+
+
+            <div className="row g-4">
+
+
+              {/* =================================
+                  DOCTOR INFORMATION
+              ================================= */}
+
+              <div className="col-lg-5">
+
+                <div className="card shadow border-0 rounded-4 h-100">
+
+                  <div className="card-body p-4">
+
+
+                    <div className="text-center mb-4">
+
+                      <div
+                        className="
+                          bg-primary
+                          bg-opacity-10
+                          rounded-circle
+                          d-inline-flex
+                          align-items-center
+                          justify-content-center
+                        "
+                        style={{
+                          width: "80px",
+                          height: "80px",
+                          fontSize: "38px",
+                        }}
+                      >
+                        👨‍⚕️
+                      </div>
+
+
+                      <h3 className="text-primary fw-bold mt-3 mb-1">
+                        {doctor.fullName}
+                      </h3>
+
+
+                      <span className="badge bg-primary fs-6">
+                        {doctor.specialization}
+                      </span>
+
+                    </div>
+
+
+                    <hr />
+
+
+                    <div className="mb-3">
+
+                      <div className="text-muted small">
+                        Experience
+                      </div>
+
+                      <div className="fw-semibold">
+                        {doctor.experience}
+                      </div>
+
+                    </div>
+
+
+                    <div className="mb-3">
+
+                      <div className="text-muted small">
+                        Consultation Fee
+                      </div>
+
+                      <div className="fw-bold text-success fs-5">
+                        ₹{doctor.fees}
+                      </div>
+
+                    </div>
+
+
+                    <div className="mb-3">
+
+                      <div className="text-muted small">
+                        Clinic Address
+                      </div>
+
+                      <div className="fw-semibold">
+                        {doctor.address}
+                      </div>
+
+                    </div>
+
+
+                    {doctor.slotDuration && (
+
+                      <div className="alert alert-light border mt-4 mb-0">
+
+                        <strong>
+                          Appointment Duration:
+                        </strong>{" "}
+
+                        {doctor.slotDuration} minutes
+
+                      </div>
+
+                    )}
+
                   </div>
 
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Appointment Time
-                    </label>
+                </div>
 
-                    <input
-                      type="time"
-                      className="form-control"
-                      value={appointmentTime}
-                      onChange={(e) =>
-                        setAppointmentTime(e.target.value)
+              </div>
+
+
+              {/* =================================
+                  BOOKING SECTION
+              ================================= */}
+
+              <div className="col-lg-7">
+
+                <div className="card shadow border-0 rounded-4 h-100">
+
+                  <div className="card-body p-4">
+
+
+                    <h4 className="fw-bold mb-4">
+                      Select Appointment
+                    </h4>
+
+
+                    <form
+                      onSubmit={
+                        handleSubmit
                       }
-                      required
-                    />
+                    >
+
+
+                      {/* =========================
+                          DATE
+                      ========================= */}
+
+                      <div className="mb-4">
+
+                        <label className="form-label fw-bold">
+                          📅 Appointment Date
+                        </label>
+
+
+                        <input
+                          type="date"
+                          className="
+                            form-control
+                            form-control-lg
+                          "
+                          min={
+                            getTodayDate()
+                          }
+                          value={
+                            appointmentDate
+                          }
+                          onChange={
+                            handleDateChange
+                          }
+                          disabled={
+                            submitting
+                          }
+                          required
+                        />
+
+
+                        {appointmentDate && (
+
+                          <div className="text-muted small mt-2">
+
+                            Selected:{" "}
+
+                            <strong>
+                              {formatDate(
+                                appointmentDate
+                              )}
+                            </strong>
+
+                          </div>
+
+                        )}
+
+                      </div>
+
+
+                      {/* =========================
+                          NO DATE SELECTED
+                      ========================= */}
+
+                      {!appointmentDate && (
+
+                        <div className="alert alert-info">
+
+                          <strong>
+                            Choose a date first
+                          </strong>
+
+                          <div className="small mt-1">
+                            Available appointment
+                            times will appear here
+                            automatically.
+                          </div>
+
+                        </div>
+
+                      )}
+
+
+                      {/* =========================
+                          LOADING SLOTS
+                      ========================= */}
+
+                      {appointmentDate &&
+                        loadingSlots && (
+
+                        <div className="text-center py-4">
+
+                          <div
+                            className="
+                              spinner-border
+                              text-primary
+                            "
+                            role="status"
+                          />
+
+                          <p className="mt-3 mb-0">
+                            Checking doctor's
+                            availability...
+                          </p>
+
+                        </div>
+
+                      )}
+
+
+                      {/* =========================
+                          NO AVAILABLE SLOTS
+                      ========================= */}
+
+                      {appointmentDate &&
+                        !loadingSlots &&
+                        availableSlots.length ===
+                          0 && (
+
+                        <div className="alert alert-warning">
+
+                          <h6 className="fw-bold mb-2">
+
+                            {slotInfo.blocked
+                              ? "Doctor unavailable on this date"
+                              : "No appointment times available"}
+
+                          </h6>
+
+
+                          <div>
+
+                            {slotInfo.message ||
+                              "Please choose another date."}
+
+                          </div>
+
+
+                          {slotInfo.dayName && (
+
+                            <div className="small mt-2">
+
+                              Selected day:{" "}
+
+                              <strong>
+                                {
+                                  slotInfo.dayName
+                                }
+                              </strong>
+
+                            </div>
+
+                          )}
+
+                        </div>
+
+                      )}
+
+
+                      {/* =========================
+                          AVAILABLE SLOTS
+                      ========================= */}
+
+                      {appointmentDate &&
+                        !loadingSlots &&
+                        availableSlots.length >
+                          0 && (
+
+                        <div className="mb-4">
+
+
+                          <div
+                            className="
+                              d-flex
+                              flex-wrap
+                              justify-content-between
+                              align-items-center
+                              gap-2
+                              mb-3
+                            "
+                          >
+
+                            <label className="form-label fw-bold mb-0">
+                              🕒 Available Times
+                            </label>
+
+
+                            {slotInfo.slotDuration && (
+
+                              <span className="badge bg-light text-dark border">
+
+                                {
+                                  slotInfo.slotDuration
+                                }{" "}
+                                min each
+
+                              </span>
+
+                            )}
+
+                          </div>
+
+
+                          {slotInfo.dayName && (
+
+                            <p className="text-muted small">
+
+                              Available appointments
+                              for{" "}
+
+                              <strong>
+                                {
+                                  slotInfo.dayName
+                                }
+                              </strong>
+
+                            </p>
+
+                          )}
+
+
+                          <div className="d-flex flex-wrap gap-2">
+
+                            {availableSlots.map(
+                              (time) => {
+
+                                const selected =
+                                  appointmentTime ===
+                                  time;
+
+
+                                return (
+
+                                  <button
+                                    key={time}
+                                    type="button"
+                                    className={
+                                      selected
+                                        ? "btn btn-primary px-3 py-2"
+                                        : "btn btn-outline-primary px-3 py-2"
+                                    }
+                                    disabled={
+                                      submitting
+                                    }
+                                    onClick={() =>
+                                      handleTimeSelect(
+                                        time
+                                      )
+                                    }
+                                    aria-pressed={
+                                      selected
+                                    }
+                                  >
+
+                                    {selected &&
+                                      "✓ "}
+
+                                    {formatTime(
+                                      time
+                                    )}
+
+                                  </button>
+
+                                );
+                              }
+                            )}
+
+                          </div>
+
+
+                          <div className="text-muted small mt-3">
+
+                            Showing{" "}
+
+                            <strong>
+                              {
+                                availableSlots.length
+                              }
+                            </strong>{" "}
+
+                            available appointment
+                            {availableSlots.length ===
+                            1
+                              ? ""
+                              : "s"}.
+
+                          </div>
+
+                        </div>
+
+                      )}
+
+
+                      {/* =========================
+                          APPOINTMENT SUMMARY
+                      ========================= */}
+
+                      {appointmentDate &&
+                        appointmentTime && (
+
+                        <div className="card border-success bg-success bg-opacity-10 mb-4">
+
+                          <div className="card-body">
+
+                            <h5 className="text-success fw-bold mb-3">
+                              Appointment Summary
+                            </h5>
+
+
+                            <div className="mb-2">
+
+                              <strong>
+                                Doctor:
+                              </strong>{" "}
+
+                              {doctor.fullName}
+
+                            </div>
+
+
+                            <div className="mb-2">
+
+                              <strong>
+                                Date:
+                              </strong>{" "}
+
+                              {formatDate(
+                                appointmentDate
+                              )}
+
+                            </div>
+
+
+                            <div className="mb-2">
+
+                              <strong>
+                                Time:
+                              </strong>{" "}
+
+                              {formatTime(
+                                appointmentTime
+                              )}
+
+                            </div>
+
+
+                            <div>
+
+                              <strong>
+                                Fee:
+                              </strong>{" "}
+
+                              ₹{doctor.fees}
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      )}
+
+
+                      {/* =========================
+                          SUBMIT BUTTON
+                      ========================= */}
+
+                      <button
+                        type="submit"
+                        className="
+                          btn
+                          btn-primary
+                          btn-lg
+                          w-100
+                        "
+                        disabled={
+                          submitting ||
+                          loadingSlots ||
+                          !appointmentDate ||
+                          !appointmentTime
+                        }
+                      >
+
+                        {submitting
+                          ? "Booking Appointment..."
+                          : "Confirm Appointment"}
+
+                      </button>
+
+
+                      {appointmentDate &&
+                        !appointmentTime &&
+                        availableSlots.length >
+                          0 && (
+
+                        <div className="text-center text-muted small mt-2">
+
+                          Select one available time
+                          to continue.
+
+                        </div>
+
+                      )}
+
+
+                    </form>
+
                   </div>
 
-                  <div className="mb-4">
-                    <label className="form-label">
-                      Medical Report (Optional)
-                    </label>
+                </div>
 
-                    <input
-                      type="file"
-                      className="form-control"
-                      onChange={(e) =>
-                        setMedicalDocument(e.target.files[0])
-                      }
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-primary btn-lg w-100"
-                  >
-                    Confirm Appointment
-                  </button>
-
-                </form>
-                              </div>
+              </div>
 
             </div>
 
@@ -166,11 +1212,13 @@ function BookAppointment() {
 
         </div>
 
-      </div>
+      </main>
+
 
       <Footer />
     </>
   );
 }
+
 
 export default BookAppointment;

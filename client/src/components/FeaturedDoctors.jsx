@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 
 function FeaturedDoctors() {
+  const navigate = useNavigate();
+
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -13,11 +15,7 @@ function FeaturedDoctors() {
 
   const fetchDoctors = async () => {
     try {
-      console.log("Fetching doctors...");
-
       const { data } = await API.get("/doctor/all");
-
-      console.log("API Response:", data);
 
       if (data.success) {
         setDoctors(data.doctors);
@@ -25,10 +23,9 @@ function FeaturedDoctors() {
         setError("Failed to load doctors.");
       }
     } catch (err) {
-      console.error("API Error:", err);
+      console.error(err);
 
       if (err.response) {
-        console.log("Response:", err.response.data);
         setError(err.response.data.message || "Server Error");
       } else {
         setError("Unable to connect to the server.");
@@ -36,6 +33,21 @@ function FeaturedDoctors() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBookAppointment = (doctorId) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      navigate("/login", {
+        state: {
+          redirectTo: `/book/${doctorId}`,
+        },
+      });
+      return;
+    }
+
+    navigate(`/book/${doctorId}`);
   };
 
   return (
@@ -50,7 +62,7 @@ function FeaturedDoctors() {
         </div>
       )}
 
-      {error && (
+      {!loading && error && (
         <div className="alert alert-danger text-center">
           {error}
         </div>
@@ -62,41 +74,49 @@ function FeaturedDoctors() {
         </div>
       )}
 
-      <div className="row">
-        {doctors.map((doctor) => (
-          <div
-            className="col-12 col-sm-6 col-lg-4 mb-4"
-            key={doctor._id}
-          >
-            <div className="card shadow-lg h-100 border-0 rounded-4">
-              <div className="card-body">
-                <h4 className="card-title">{doctor.fullName}</h4>
+      {!loading && !error && doctors.length > 0 && (
+        <div className="row">
+          {doctors.map((doctor) => (
+            <div
+              key={doctor._id}
+              className="col-12 col-sm-6 col-lg-4 mb-4"
+            >
+              <div className="card shadow-lg h-100 border-0 rounded-4">
+                <div className="card-body d-flex flex-column">
+                  <h4 className="card-title fw-bold">
+                    {doctor.fullName}
+                  </h4>
 
-                <p>
-                  <strong>Specialization:</strong>{" "}
-                  {doctor.specialization}
-                </p>
+                  <p>
+                    <strong>Specialization:</strong>{" "}
+                    {doctor.specialization}
+                  </p>
 
-                <p>
-                  <strong>Experience:</strong>{" "}
-                  {doctor.experience}
-                </p>
+                  <p>
+                    <strong>Experience:</strong>{" "}
+                    {doctor.experience}
+                  </p>
 
-                <p>
-                  <strong>Consultation Fee:</strong> ₹{doctor.fees}
-                </p>
+                  <p>
+                    <strong>Consultation Fee:</strong> ₹
+                    {doctor.fees}
+                  </p>
 
-                <Link
-                  to={`/book/${doctor._id}`}
-                  className="btn btn-primary btn-lg w-100 rounded-3"
-                >
-                  Book Appointment
-                </Link>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg w-100 mt-auto rounded-3"
+                    onClick={() =>
+                      handleBookAppointment(doctor._id)
+                    }
+                  >
+                    Book Appointment
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

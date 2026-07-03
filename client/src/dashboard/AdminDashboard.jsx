@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "react-toastify";
+
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import API from "../services/api";
@@ -6,12 +8,9 @@ import API from "../services/api";
 function AdminDashboard() {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
 
-  useEffect(() => {
-    fetchPendingDoctors();
-  }, []);
-
-  const fetchPendingDoctors = async () => {
+  const fetchPendingDoctors = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
 
@@ -30,15 +29,26 @@ function AdminDashboard() {
     } catch (error) {
       console.error(error);
 
-      alert(
+      toast.error(
         error.response?.data?.message ||
-          "Failed to load doctor applications."
+          "Failed to load doctor applications"
       );
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPendingDoctors();
+  }, [fetchPendingDoctors]);
+
   const approveDoctor = async (id) => {
+    if (updatingId) {
+      return;
+    }
+
+    setUpdatingId(id);
+
     try {
       const token = localStorage.getItem("token");
 
@@ -52,22 +62,30 @@ function AdminDashboard() {
         }
       );
 
-      alert(data.message);
+      toast.success(
+        data.message || "Doctor approved successfully"
+      );
 
-      fetchPendingDoctors();
-
+      await fetchPendingDoctors();
     } catch (error) {
-
       console.error(error);
 
-      alert(
+      toast.error(
         error.response?.data?.message ||
-        "Approval failed"
+          "Approval failed"
       );
+    } finally {
+      setUpdatingId(null);
     }
   };
 
   const rejectDoctor = async (id) => {
+    if (updatingId) {
+      return;
+    }
+
+    setUpdatingId(id);
+
     try {
       const token = localStorage.getItem("token");
 
@@ -81,26 +99,28 @@ function AdminDashboard() {
         }
       );
 
-      alert(data.message);
+      toast.success(
+        data.message || "Doctor application rejected"
+      );
 
-      fetchPendingDoctors();
-
+      await fetchPendingDoctors();
     } catch (error) {
-
       console.error(error);
 
-      alert(
+      toast.error(
         error.response?.data?.message ||
-        "Rejection failed"
+          "Rejection failed"
       );
+    } finally {
+      setUpdatingId(null);
     }
   };
+
   return (
     <>
       <Navbar />
 
-      <div className="container py-5">
-
+      <main className="container py-5">
         <div className="text-center mb-5">
           <h2 className="text-primary fw-bold">
             Admin Dashboard
@@ -112,7 +132,6 @@ function AdminDashboard() {
         </div>
 
         <div className="row mb-4">
-
           <div className="col-md-4 mx-auto">
             <div className="card shadow border-0 text-center">
               <div className="card-body">
@@ -124,108 +143,105 @@ function AdminDashboard() {
               </div>
             </div>
           </div>
-
         </div>
 
         {loading ? (
-
-          <h4 className="text-center">
-            Loading...
-          </h4>
-
+          <div className="text-center py-5">
+            <h4>Loading applications...</h4>
+          </div>
         ) : doctors.length === 0 ? (
-
           <div className="alert alert-success text-center">
             No pending doctor applications.
           </div>
-
         ) : (
-
           <div className="row">
+            {doctors.map((doctor) => {
+              const isUpdating =
+                updatingId === doctor._id;
 
-            {doctors.map((doctor) => (
+              return (
+                <div
+                  className="col-lg-6 mb-4"
+                  key={doctor._id}
+                >
+                  <div className="card shadow border-0 rounded-4 h-100">
+                    <div className="card-body">
+                      <h4 className="text-primary fw-bold">
+                        {doctor.fullName}
+                      </h4>
 
-              <div
-                className="col-lg-6 mb-4"
-                key={doctor._id}
-              >
+                      <p>
+                        <strong>Email:</strong>{" "}
+                        {doctor.email}
+                      </p>
 
-                <div className="card shadow border-0 rounded-4 h-100">
+                      <p>
+                        <strong>Phone:</strong>{" "}
+                        {doctor.phone}
+                      </p>
 
-                  <div className="card-body">
+                      <p>
+                        <strong>
+                          Specialization:
+                        </strong>{" "}
+                        {doctor.specialization}
+                      </p>
 
-                    <h4 className="text-primary fw-bold">
-                      {doctor.fullName}
-                    </h4>
+                      <p>
+                        <strong>Experience:</strong>{" "}
+                        {doctor.experience}
+                      </p>
 
-                    <p>
-                      <strong>Email:</strong>{" "}
-                      {doctor.email}
-                    </p>
+                      <p>
+                        <strong>
+                          Consultation Fee:
+                        </strong>{" "}
+                        ₹{doctor.fees}
+                      </p>
 
-                    <p>
-                      <strong>Phone:</strong>{" "}
-                      {doctor.phone}
-                    </p>
+                      <p>
+                        <strong>Status:</strong>{" "}
 
-                    <p>
-                      <strong>Specialization:</strong>{" "}
-                      {doctor.specialization}
-                    </p>
+                        <span className="text-warning fw-bold">
+                          {doctor.status}
+                        </span>
+                      </p>
 
-                    <p>
-                      <strong>Experience:</strong>{" "}
-                      {doctor.experience}
-                    </p>
+                      <div className="d-flex gap-2 mt-3">
+                        <button
+                          type="button"
+                          className="btn btn-success w-100"
+                          disabled={isUpdating}
+                          onClick={() =>
+                            approveDoctor(doctor._id)
+                          }
+                        >
+                          {isUpdating
+                            ? "Updating..."
+                            : "Approve"}
+                        </button>
 
-                    <p>
-                      <strong>Consultation Fee:</strong>{" "}
-                      ₹{doctor.fees}
-                    </p>
-
-                    <p>
-                      <strong>Status:</strong>{" "}
-
-                      <span className="text-warning fw-bold">
-                        {doctor.status}
-                      </span>
-                    </p>
-
-                    <div className="d-flex gap-2 mt-3">
-
-                      <button
-                        className="btn btn-success w-100"
-                        onClick={() =>
-                          approveDoctor(doctor._id)
-                        }
-                      >
-                        Approve
-                      </button>
-
-                      <button
-                        className="btn btn-danger w-100"
-                        onClick={() =>
-                          rejectDoctor(doctor._id)
-                        }
-                      >
-                        Reject
-                      </button>
-
+                        <button
+                          type="button"
+                          className="btn btn-danger w-100"
+                          disabled={isUpdating}
+                          onClick={() =>
+                            rejectDoctor(doctor._id)
+                          }
+                        >
+                          {isUpdating
+                            ? "Updating..."
+                            : "Reject"}
+                        </button>
+                      </div>
                     </div>
-
                   </div>
-
                 </div>
-
-              </div>
-
-            ))}
-
+              );
+            })}
           </div>
-
         )}
-
-      </div>
+      </main>
 
       <Footer />
     </>

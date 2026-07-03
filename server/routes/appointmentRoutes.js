@@ -1,23 +1,54 @@
 const express = require("express");
-const authMiddleware = require("../middleware/authMiddleware");
-const { doctorMiddleware } = require("../middleware/roleMiddleware");
+
+const authMiddleware = require(
+  "../middleware/authMiddleware"
+);
 
 const {
+  doctorMiddleware,
+} = require(
+  "../middleware/roleMiddleware"
+);
+
+const {
+  getAvailableSlotsController,
   bookAppointmentController,
   getUserAppointmentsController,
   getDoctorAppointmentsController,
   updateAppointmentStatusController,
-} = require("../controllers/appointmentController");
+} = require(
+  "../controllers/appointmentController"
+);
+
 
 const router = express.Router();
 
-// Book Appointment
-router.post("/book", authMiddleware, bookAppointmentController);
 
-// User Appointments
-router.get("/user", authMiddleware, getUserAppointmentsController);
+// Available slots for doctor + date
+router.get(
+  "/available-slots",
+  authMiddleware,
+  getAvailableSlotsController
+);
 
-// Doctor Appointments (Doctor Only)
+
+// Book appointment
+router.post(
+  "/book",
+  authMiddleware,
+  bookAppointmentController
+);
+
+
+// Patient appointments
+router.get(
+  "/user",
+  authMiddleware,
+  getUserAppointmentsController
+);
+
+
+// Doctor appointments
 router.get(
   "/doctor",
   authMiddleware,
@@ -25,12 +56,14 @@ router.get(
   getDoctorAppointmentsController
 );
 
-// Update Appointment Status (Doctor Only)
+
+// Doctor updates appointment status
 router.put(
   "/update/:id",
   authMiddleware,
   doctorMiddleware,
   updateAppointmentStatusController
 );
+
 
 module.exports = router;
