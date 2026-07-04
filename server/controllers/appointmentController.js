@@ -822,14 +822,15 @@ const getDoctorAppointmentsController =
       const doctor =
         await Doctor.findOne({
           userId: req.user._id,
+          status: "approved",
         });
 
 
       if (!doctor) {
-        return res.status(404).json({
+        return res.status(403).json({
           success: false,
           message:
-            "Doctor profile not found.",
+            "Approved doctor profile not found.",
         });
       }
 
