@@ -879,16 +879,40 @@ const updateAppointmentStatusController =
       const { status } = req.body;
 
 
-      const allowedStatuses = [
-        "Pending",
-        "Approved",
-        "Rejected",
-        "Completed",
-      ];
+      // ==================================
+      // Allowed Status Transition Map
+      //
+      // Pending:
+      //   -> Approved
+      //   -> Rejected
+      //
+      // Approved:
+      //   -> Completed
+      //
+      // Rejected and Completed:
+      //   terminal states
+      // ==================================
+      const allowedTransitions = {
+        Pending: [
+          "Approved",
+          "Rejected",
+        ],
+
+        Approved: [
+          "Completed",
+        ],
+
+        Rejected: [],
+
+        Completed: [],
+      };
 
 
       if (
-        !allowedStatuses.includes(status)
+        !Object.prototype.hasOwnProperty.call(
+          allowedTransitions,
+          status
+        )
       ) {
         return res.status(400).json({
           success: false,
@@ -901,14 +925,15 @@ const updateAppointmentStatusController =
       const doctor =
         await Doctor.findOne({
           userId: req.user._id,
+          status: "approved",
         });
 
 
       if (!doctor) {
-        return res.status(404).json({
+        return res.status(403).json({
           success: false,
           message:
-            "Doctor profile not found.",
+            "Approved doctor profile not found.",
         });
       }
 
@@ -929,6 +954,35 @@ const updateAppointmentStatusController =
       }
 
 
+      const currentStatus =
+        appointment.status;
+
+      const nextStatuses =
+        allowedTransitions[
+          currentStatus
+        ];
+
+
+      if (!nextStatuses) {
+        return res.status(409).json({
+          success: false,
+          message:
+            `Appointment has an invalid current status: ${currentStatus}.`,
+        });
+      }
+
+
+      if (
+        !nextStatuses.includes(status)
+      ) {
+        return res.status(409).json({
+          success: false,
+          message:
+            `Cannot change appointment status from ${currentStatus} to ${status}.`,
+        });
+      }
+
+
       appointment.status = status;
 
       await appointment.save();
@@ -937,7 +991,7 @@ const updateAppointmentStatusController =
       return res.status(200).json({
         success: true,
         message:
-          "Appointment status updated successfully.",
+          `Appointment status changed from ${currentStatus} to ${status}.`,
         appointment,
       });
 
@@ -951,7 +1005,6 @@ const updateAppointmentStatusController =
         success: false,
         message:
           "Failed to update appointment status.",
-        error: error.message,
       });
     }
   };
