@@ -754,11 +754,26 @@ const bookAppointmentController =
         error
       );
 
+      // ==================================
+      // Database-Level Double Booking Guard
+      // ==================================
+      if (
+        error?.code === 11000 &&
+        error?.keyPattern?.doctorId &&
+        error?.keyPattern?.appointmentDate &&
+        error?.keyPattern?.appointmentTime
+      ) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "This time slot was just booked by another patient. Please select another available time.",
+        });
+      }
+
       return res.status(500).json({
         success: false,
         message:
           "Failed to book appointment.",
-        error: error.message,
       });
     }
   };
