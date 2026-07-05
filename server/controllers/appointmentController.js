@@ -603,7 +603,6 @@ const getAvailableSlotsController =
         success: false,
         message:
           "Failed to fetch available slots.",
-        error: error.message,
       });
     }
   };

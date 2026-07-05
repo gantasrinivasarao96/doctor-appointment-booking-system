@@ -636,8 +636,6 @@ const applyDoctorController = async (
       success: false,
       message:
         "Doctor application failed.",
-      error:
-        error.message,
     });
   }
 };
@@ -679,8 +677,6 @@ const getDoctorProfileController = async (
       success: false,
       message:
         "Failed to fetch doctor profile.",
-      error:
-        error.message,
     });
   }
 };
@@ -807,8 +803,6 @@ const updateDoctorProfileController =
         success: false,
         message:
           "Failed to update doctor profile.",
-        error:
-          error.message,
       });
     }
   };

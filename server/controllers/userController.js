@@ -22,7 +22,6 @@ const getUserProfile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch profile",
-      error: error.message,
     });
   }
 };
