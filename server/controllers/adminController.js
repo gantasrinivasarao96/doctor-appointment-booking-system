@@ -1,107 +1,210 @@
 const Doctor = require("../models/Doctor");
 const User = require("../models/User");
 
+
 // ======================================
 // Get Pending Doctor Applications
 // ======================================
-const getPendingDoctorsController = async (req, res) => {
-  try {
-    const doctors = await Doctor.find({ status: "pending" });
+const getPendingDoctorsController =
+  async (req, res) => {
+    try {
+      const doctors =
+        await Doctor.find({
+          status: "pending",
+        }).sort({
+          createdAt: 1,
+        });
 
-    res.status(200).json({
-      success: true,
-      total: doctors.length,
-      doctors,
-    });
-  } catch (error) {
-    console.error(error);
 
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch pending doctors",
-      error: error.message,
-    });
-  }
-};
+      return res.status(200).json({
+        success: true,
+        total: doctors.length,
+        doctors,
+      });
+
+    } catch (error) {
+      console.error(
+        "Get pending doctors error:",
+        error
+      );
+
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to fetch pending doctors.",
+      });
+    }
+  };
+
 
 // ======================================
 // Approve Doctor
+//
+// Allowed transition:
+// pending -> approved
 // ======================================
-const approveDoctorController = async (req, res) => {
-  try {
-    const doctor = await Doctor.findById(req.params.id);
+const approveDoctorController =
+  async (req, res) => {
+    try {
+      const doctor =
+        await Doctor.findById(
+          req.params.id
+        );
 
-    if (!doctor) {
-      return res.status(404).json({
+
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Doctor not found.",
+        });
+      }
+
+
+      if (
+        doctor.status !== "pending"
+      ) {
+        return res.status(409).json({
+          success: false,
+          message:
+            `Cannot approve doctor application from ${doctor.status} status.`,
+        });
+      }
+
+
+      const user =
+        await User.findById(
+          doctor.userId
+        );
+
+
+      if (!user) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "Associated user account not found.",
+        });
+      }
+
+
+      doctor.status = "approved";
+
+      await doctor.save();
+
+
+      user.isDoctor = true;
+
+      await user.save();
+
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Doctor approved successfully.",
+      });
+
+    } catch (error) {
+      console.error(
+        "Approve doctor error:",
+        error
+      );
+
+
+      return res.status(500).json({
         success: false,
-        message: "Doctor not found",
+        message:
+          "Doctor approval failed.",
       });
     }
+  };
 
-    doctor.status = "approved";
-    await doctor.save();
 
-    await User.findByIdAndUpdate(doctor.userId, {
-      isDoctor: true,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Doctor approved successfully",
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Approval failed",
-      error: error.message,
-    });
-  }
-};
 // ======================================
 // Reject Doctor
+//
+// Allowed transition:
+// pending -> rejected
 // ======================================
-const rejectDoctorController = async (req, res) => {
-  try {
-    const doctor = await Doctor.findById(req.params.id);
+const rejectDoctorController =
+  async (req, res) => {
+    try {
+      const doctor =
+        await Doctor.findById(
+          req.params.id
+        );
 
-    if (!doctor) {
-      return res.status(404).json({
+
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Doctor not found.",
+        });
+      }
+
+
+      if (
+        doctor.status !== "pending"
+      ) {
+        return res.status(409).json({
+          success: false,
+          message:
+            `Cannot reject doctor application from ${doctor.status} status.`,
+        });
+      }
+
+
+      const user =
+        await User.findById(
+          doctor.userId
+        );
+
+
+      if (!user) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "Associated user account not found.",
+        });
+      }
+
+
+      doctor.status = "rejected";
+
+      await doctor.save();
+
+
+      user.isDoctor = false;
+
+      await user.save();
+
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Doctor rejected successfully.",
+      });
+
+    } catch (error) {
+      console.error(
+        "Reject doctor error:",
+        error
+      );
+
+
+      return res.status(500).json({
         success: false,
-        message: "Doctor not found",
+        message:
+          "Doctor rejection failed.",
       });
     }
+  };
 
-    doctor.status = "rejected";
 
-    await doctor.save();
-
-    await User.findByIdAndUpdate(
-      doctor.userId,
-      {
-        isDoctor: false,
-      }
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "Doctor rejected successfully",
-    });
-
-  } catch (error) {
-
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: "Rejection failed",
-      error: error.message,
-    });
-
-  }
-};
-
+// ======================================
+// Exports
+// ======================================
 module.exports = {
   getPendingDoctorsController,
   approveDoctorController,
