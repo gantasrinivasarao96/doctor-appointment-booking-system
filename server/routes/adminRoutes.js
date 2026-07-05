@@ -1,5 +1,6 @@
 const express = require("express");
 const authMiddleware = require("../middleware/authMiddleware");
+const validateObjectId = require("../middleware/validateObjectId");
 const { adminMiddleware } = require("../middleware/roleMiddleware");
 
 const {
@@ -23,6 +24,7 @@ router.put(
   "/doctors/approve/:id",
   authMiddleware,
   adminMiddleware,
+  validateObjectId,
   approveDoctorController
 );
 
@@ -31,6 +33,7 @@ router.put(
   "/doctors/reject/:id",
   authMiddleware,
   adminMiddleware,
+  validateObjectId,
   rejectDoctorController
 );
 

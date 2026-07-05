@@ -1,5 +1,6 @@
 const express = require("express");
 const authMiddleware = require("../middleware/authMiddleware");
+const validateObjectId = require("../middleware/validateObjectId");
 
 const {
   applyDoctorController,
@@ -41,6 +42,7 @@ router.get(
 // Get one approved doctor by ID
 router.get(
   "/:id",
+  validateObjectId,
   getSingleDoctorController
 );
 

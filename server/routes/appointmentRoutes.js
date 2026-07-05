@@ -4,6 +4,10 @@ const authMiddleware = require(
   "../middleware/authMiddleware"
 );
 
+const validateObjectId = require(
+  "../middleware/validateObjectId"
+);
+
 const {
   doctorMiddleware,
 } = require(
@@ -62,6 +66,7 @@ router.put(
   "/update/:id",
   authMiddleware,
   doctorMiddleware,
+  validateObjectId,
   updateAppointmentStatusController
 );
 
