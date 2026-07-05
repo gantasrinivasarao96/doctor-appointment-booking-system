@@ -1,56 +1,42 @@
-const User = require("../models/User");
-
 // ======================================
 // Admin Middleware
 // ======================================
-const adminMiddleware = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id);
-
-    if (!user || !user.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Admin only.",
-      });
-    }
-
-    next();
-  } catch (error) {
-    console.error(error);
-
-    return res.status(500).json({
+const adminMiddleware = (
+  req,
+  res,
+  next
+) => {
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({
       success: false,
-      message: "Authorization failed",
-      error: error.message,
+      message:
+        "Access denied. Admin only.",
     });
   }
+
+  return next();
 };
+
 
 // ======================================
 // Doctor Middleware
 // ======================================
-const doctorMiddleware = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id);
-
-    if (!user || !user.isDoctor) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Doctors only.",
-      });
-    }
-
-    next();
-  } catch (error) {
-    console.error(error);
-
-    return res.status(500).json({
+const doctorMiddleware = (
+  req,
+  res,
+  next
+) => {
+  if (!req.user?.isDoctor) {
+    return res.status(403).json({
       success: false,
-      message: "Authorization failed",
-      error: error.message,
+      message:
+        "Access denied. Doctors only.",
     });
   }
+
+  return next();
 };
+
 
 module.exports = {
   adminMiddleware,
