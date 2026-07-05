@@ -1,5 +1,6 @@
 const Appointment = require("../models/Appointment");
 const Doctor = require("../models/Doctor");
+const mongoose = require("mongoose");
 
 
 // ======================================
@@ -532,6 +533,18 @@ const getAvailableSlotsController =
         });
       }
 
+      if (
+        !mongoose.isObjectIdOrHexString(
+          doctorId
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid doctor ID.",
+        });
+      }
+
       const doctor =
         await Doctor.findById(
           doctorId
@@ -658,6 +671,18 @@ const bookAppointmentController =
           success: false,
           message:
             "Invalid appointment time.",
+        });
+      }
+
+      if (
+        !mongoose.isObjectIdOrHexString(
+          doctorId
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid doctor ID.",
         });
       }
 
