@@ -784,7 +784,18 @@ const getUserAppointmentsController =
         await Appointment.find({
           userId: req.user._id,
         })
-          .populate("doctorId")
+          .populate(
+            "doctorId",
+            [
+              "fullName",
+              "specialization",
+              "experience",
+              "fees",
+              "address",
+              "weeklyAvailability",
+              "slotDuration",
+            ].join(" ")
+          )
           .sort({
             appointmentDate: -1,
             appointmentTime: -1,
@@ -807,7 +818,6 @@ const getUserAppointmentsController =
         success: false,
         message:
           "Failed to fetch user appointments.",
-        error: error.message,
       });
     }
   };
@@ -841,7 +851,11 @@ const getDoctorAppointmentsController =
         })
           .populate(
             "userId",
-            "-password"
+            [
+              "name",
+              "email",
+              "phone",
+            ].join(" ")
           )
           .sort({
             appointmentDate: 1,
@@ -865,7 +879,6 @@ const getDoctorAppointmentsController =
         success: false,
         message:
           "Failed to fetch doctor appointments.",
-        error: error.message,
       });
     }
   };

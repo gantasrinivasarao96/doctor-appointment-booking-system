@@ -24,6 +24,20 @@ const ALLOWED_SLOT_DURATIONS = [
 
 
 // ======================================
+// Public Doctor Field Projection
+// ======================================
+const PUBLIC_DOCTOR_FIELDS = [
+  "fullName",
+  "specialization",
+  "experience",
+  "fees",
+  "address",
+  "weeklyAvailability",
+  "slotDuration",
+].join(" ");
+
+
+// ======================================
 // Validate HH:mm 24-hour time
 // ======================================
 const isValidTime = (time) => {
@@ -809,8 +823,11 @@ const getSingleDoctorController = async (
 ) => {
   try {
     const doctor =
-      await Doctor.findById(
-        req.params.id
+      await Doctor.findOne({
+        _id: req.params.id,
+        status: "approved",
+      }).select(
+        PUBLIC_DOCTOR_FIELDS
       );
 
     if (!doctor) {
@@ -818,18 +835,6 @@ const getSingleDoctorController = async (
         success: false,
         message:
           "Doctor not found.",
-      });
-    }
-
-
-    if (
-      doctor.status !==
-      "approved"
-    ) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "Doctor is not currently available.",
       });
     }
 
@@ -849,8 +854,6 @@ const getSingleDoctorController = async (
       success: false,
       message:
         "Failed to fetch doctor.",
-      error:
-        error.message,
     });
   }
 };
@@ -868,9 +871,13 @@ const getAllDoctorsController = async (
       await Doctor.find({
         status:
           "approved",
-      }).sort({
-        createdAt: -1,
-      });
+      })
+        .select(
+          PUBLIC_DOCTOR_FIELDS
+        )
+        .sort({
+          createdAt: -1,
+        });
 
 
     return res.status(200).json({
@@ -890,8 +897,6 @@ const getAllDoctorsController = async (
       success: false,
       message:
         "Failed to fetch approved doctors.",
-      error:
-        error.message,
     });
   }
 };
