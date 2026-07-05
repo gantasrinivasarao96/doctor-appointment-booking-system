@@ -1,0 +1,907 @@
+const request = require("supertest");
+const bcrypt = require("bcryptjs");
+
+const app = require("../app");
+const User = require("../models/User");
+const Doctor = require("../models/Doctor");
+const Appointment = require(
+  "../models/Appointment"
+);
+const generateToken = require(
+  "../utils/generateToken"
+);
+
+
+// ======================================
+// Date Helpers
+// ======================================
+const toDateString = (date) => {
+  return [
+    date.getFullYear(),
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0"),
+    String(
+      date.getDate()
+    ).padStart(2, "0"),
+  ].join("-");
+};
+
+
+const getFutureDay = (
+  targetDay,
+  weeksAhead = 2
+) => {
+  const date = new Date();
+
+  date.setHours(
+    12,
+    0,
+    0,
+    0
+  );
+
+  const daysUntilTarget =
+    (
+      targetDay -
+      date.getDay() +
+      7
+    ) % 7;
+
+  date.setDate(
+    date.getDate() +
+    daysUntilTarget +
+    weeksAhead * 7
+  );
+
+  return toDateString(date);
+};
+
+
+// ======================================
+// Appointment Flow Integration Tests
+// ======================================
+describe(
+  "Appointment Flow API",
+  () => {
+    let patient;
+    let secondPatient;
+    let doctorUser;
+    let otherDoctorUser;
+
+    let doctor;
+    let otherDoctor;
+
+    let patientToken;
+    let secondPatientToken;
+    let doctorToken;
+    let otherDoctorToken;
+
+    let mondayDate;
+    let tuesdayDate;
+    let blockedMondayDate;
+
+
+    beforeEach(async () => {
+      await Appointment.deleteMany({});
+      await Doctor.deleteMany({});
+      await User.deleteMany({});
+
+
+      mondayDate =
+        getFutureDay(1, 2);
+
+      tuesdayDate =
+        getFutureDay(2, 2);
+
+      blockedMondayDate =
+        getFutureDay(1, 3);
+
+
+      const password =
+        await bcrypt.hash(
+          "password123",
+          10
+        );
+
+
+      patient =
+        await User.create({
+          name: "Patient One",
+          email:
+            "patient1@example.com",
+          password,
+          phone: "9876543210",
+        });
+
+
+      secondPatient =
+        await User.create({
+          name: "Patient Two",
+          email:
+            "patient2@example.com",
+          password,
+          phone: "9876543211",
+        });
+
+
+      doctorUser =
+        await User.create({
+          name: "Doctor User",
+          email:
+            "doctor1@example.com",
+          password,
+          phone: "9876543212",
+          isDoctor: true,
+        });
+
+
+      otherDoctorUser =
+        await User.create({
+          name: "Other Doctor",
+          email:
+            "doctor2@example.com",
+          password,
+          phone: "9876543213",
+          isDoctor: true,
+        });
+
+
+      doctor =
+        await Doctor.create({
+          userId:
+            doctorUser._id,
+
+          fullName:
+            "Dr Appointment Test",
+
+          phone:
+            "9876543212",
+
+          email:
+            "doctor1@example.com",
+
+          specialization:
+            "General Medicine",
+
+          experience:
+            "5 years",
+
+          fees: 500,
+
+          address:
+            "Test Address",
+
+          weeklyAvailability: [
+            {
+              day: "Monday",
+              enabled: true,
+              sessions: [
+                {
+                  startTime:
+                    "09:00",
+                  endTime:
+                    "11:00",
+                },
+              ],
+            },
+          ],
+
+          slotDuration: 30,
+
+          blockedDates: [
+            blockedMondayDate,
+          ],
+
+          status: "approved",
+        });
+
+
+      otherDoctor =
+        await Doctor.create({
+          userId:
+            otherDoctorUser._id,
+
+          fullName:
+            "Dr Other Doctor",
+
+          phone:
+            "9876543213",
+
+          email:
+            "doctor2@example.com",
+
+          specialization:
+            "Cardiology",
+
+          experience:
+            "7 years",
+
+          fees: 700,
+
+          address:
+            "Other Address",
+
+          weeklyAvailability: [
+            {
+              day: "Monday",
+              enabled: true,
+              sessions: [
+                {
+                  startTime:
+                    "09:00",
+                  endTime:
+                    "11:00",
+                },
+              ],
+            },
+          ],
+
+          slotDuration: 30,
+
+          status: "approved",
+        });
+
+
+      patientToken =
+        generateToken(
+          patient._id
+        );
+
+      secondPatientToken =
+        generateToken(
+          secondPatient._id
+        );
+
+      doctorToken =
+        generateToken(
+          doctorUser._id
+        );
+
+      otherDoctorToken =
+        generateToken(
+          otherDoctorUser._id
+        );
+    });
+
+
+    // ==================================
+    // Available Slots
+    // ==================================
+    test(
+      "returns generated slots for an available day",
+      async () => {
+        const response =
+          await request(app)
+            .get(
+              "/api/v1/appointment/available-slots"
+            )
+            .query({
+              doctorId:
+                doctor._id.toString(),
+
+              appointmentDate:
+                mondayDate,
+            })
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            );
+
+
+        expect(
+          response.status
+        ).toBe(200);
+
+        expect(
+          response.body.success
+        ).toBe(true);
+
+        expect(
+          response.body.dayName
+        ).toBe("Monday");
+
+        expect(
+          response.body.doctorSlots
+        ).toEqual([
+          "09:00",
+          "09:30",
+          "10:00",
+          "10:30",
+        ]);
+
+        expect(
+          response.body.availableSlots
+        ).toEqual([
+          "09:00",
+          "09:30",
+          "10:00",
+          "10:30",
+        ]);
+      }
+    );
+
+
+    test(
+      "returns no slots on an unavailable day",
+      async () => {
+        const response =
+          await request(app)
+            .get(
+              "/api/v1/appointment/available-slots"
+            )
+            .query({
+              doctorId:
+                doctor._id.toString(),
+
+              appointmentDate:
+                tuesdayDate,
+            })
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            );
+
+
+        expect(
+          response.status
+        ).toBe(200);
+
+        expect(
+          response.body.success
+        ).toBe(true);
+
+        expect(
+          response.body.availableSlots
+        ).toEqual([]);
+      }
+    );
+
+
+    test(
+      "returns no slots on a blocked date",
+      async () => {
+        const response =
+          await request(app)
+            .get(
+              "/api/v1/appointment/available-slots"
+            )
+            .query({
+              doctorId:
+                doctor._id.toString(),
+
+              appointmentDate:
+                blockedMondayDate,
+            })
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            );
+
+
+        expect(
+          response.status
+        ).toBe(200);
+
+        expect(
+          response.body.blocked
+        ).toBe(true);
+
+        expect(
+          response.body.availableSlots
+        ).toEqual([]);
+      }
+    );
+
+
+    test(
+      "rejects an invalid doctor ID when fetching slots",
+      async () => {
+        const response =
+          await request(app)
+            .get(
+              "/api/v1/appointment/available-slots"
+            )
+            .query({
+              doctorId: "bad-id",
+              appointmentDate:
+                mondayDate,
+            })
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            );
+
+
+        expect(
+          response.status
+        ).toBe(400);
+
+        expect(
+          response.body
+        ).toEqual({
+          success: false,
+          message:
+            "Invalid doctor ID.",
+        });
+      }
+    );
+
+
+    // ==================================
+    // Booking
+    // ==================================
+    test(
+      "books a valid available appointment",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            )
+            .send({
+              doctorId:
+                doctor._id.toString(),
+
+              appointmentDate:
+                mondayDate,
+
+              appointmentTime:
+                "09:00",
+            });
+
+
+        expect(
+          response.status
+        ).toBe(201);
+
+        expect(
+          response.body.success
+        ).toBe(true);
+
+        expect(
+          response.body.appointment
+            .appointmentTime
+        ).toBe("09:00");
+
+        expect(
+          response.body.appointment.status
+        ).toBe("Pending");
+
+
+        const savedAppointment =
+          await Appointment.findOne({
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+          });
+
+
+        expect(
+          savedAppointment
+        ).not.toBeNull();
+      }
+    );
+
+
+    test(
+      "normalizes 12-hour appointment time during booking",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            )
+            .send({
+              doctorId:
+                doctor._id.toString(),
+
+              appointmentDate:
+                mondayDate,
+
+              appointmentTime:
+                "09:30 AM",
+            });
+
+
+        expect(
+          response.status
+        ).toBe(201);
+
+        expect(
+          response.body.appointment
+            .appointmentTime
+        ).toBe("09:30");
+      }
+    );
+
+
+    test(
+      "rejects booking outside the doctor schedule",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            )
+            .send({
+              doctorId:
+                doctor._id.toString(),
+
+              appointmentDate:
+                mondayDate,
+
+              appointmentTime:
+                "15:00",
+            });
+
+
+        expect(
+          response.status
+        ).toBe(400);
+
+        expect(
+          response.body.message
+        ).toBe(
+          "Selected time is outside the doctor's working schedule."
+        );
+      }
+    );
+
+
+    test(
+      "rejects booking an already occupied slot",
+      async () => {
+        const bookingData = {
+          doctorId:
+            doctor._id.toString(),
+
+          appointmentDate:
+            mondayDate,
+
+          appointmentTime:
+            "10:00",
+        };
+
+
+        const firstResponse =
+          await request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            )
+            .send(bookingData);
+
+
+        expect(
+          firstResponse.status
+        ).toBe(201);
+
+
+        const secondResponse =
+          await request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${secondPatientToken}`
+            )
+            .send(bookingData);
+
+
+        expect(
+          secondResponse.status
+        ).toBe(409);
+
+        expect(
+          secondResponse.body.success
+        ).toBe(false);
+      }
+    );
+
+
+    test(
+      "rejects an invalid doctor ID during booking",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            )
+            .send({
+              doctorId: "bad-id",
+              appointmentDate:
+                mondayDate,
+              appointmentTime:
+                "09:00",
+            });
+
+
+        expect(
+          response.status
+        ).toBe(400);
+
+        expect(
+          response.body.message
+        ).toBe(
+          "Invalid doctor ID."
+        );
+      }
+    );
+
+
+    // ==================================
+    // Appointment Access
+    // ==================================
+    test(
+      "returns only the logged-in patient's appointments",
+      async () => {
+        await Appointment.create([
+          {
+            userId: patient._id,
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+          },
+          {
+            userId:
+              secondPatient._id,
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:30",
+          },
+        ]);
+
+
+        const response =
+          await request(app)
+            .get(
+              "/api/v1/appointment/user"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            );
+
+
+        expect(
+          response.status
+        ).toBe(200);
+
+        expect(
+          response.body.total
+        ).toBe(1);
+
+        expect(
+          response.body.appointments
+        ).toHaveLength(1);
+      }
+    );
+
+
+    test(
+      "returns only appointments belonging to the logged-in doctor",
+      async () => {
+        await Appointment.create([
+          {
+            userId: patient._id,
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+          },
+          {
+            userId:
+              secondPatient._id,
+            doctorId:
+              otherDoctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+          },
+        ]);
+
+
+        const response =
+          await request(app)
+            .get(
+              "/api/v1/appointment/doctor"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${doctorToken}`
+            );
+
+
+        expect(
+          response.status
+        ).toBe(200);
+
+        expect(
+          response.body.total
+        ).toBe(1);
+
+        expect(
+          response.body.appointments
+        ).toHaveLength(1);
+      }
+    );
+
+
+    // ==================================
+    // Status Transitions
+    // ==================================
+    test(
+      "allows Pending to Approved and Approved to Completed",
+      async () => {
+        const appointment =
+          await Appointment.create({
+            userId: patient._id,
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+          });
+
+
+        const approveResponse =
+          await request(app)
+            .put(
+              `/api/v1/appointment/update/${appointment._id}`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${doctorToken}`
+            )
+            .send({
+              status: "Approved",
+            });
+
+
+        expect(
+          approveResponse.status
+        ).toBe(200);
+
+        expect(
+          approveResponse.body
+            .appointment.status
+        ).toBe("Approved");
+
+
+        const completeResponse =
+          await request(app)
+            .put(
+              `/api/v1/appointment/update/${appointment._id}`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${doctorToken}`
+            )
+            .send({
+              status: "Completed",
+            });
+
+
+        expect(
+          completeResponse.status
+        ).toBe(200);
+
+        expect(
+          completeResponse.body
+            .appointment.status
+        ).toBe("Completed");
+      }
+    );
+
+
+    test(
+      "rejects an invalid appointment status transition",
+      async () => {
+        const appointment =
+          await Appointment.create({
+            userId: patient._id,
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+          });
+
+
+        const response =
+          await request(app)
+            .put(
+              `/api/v1/appointment/update/${appointment._id}`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${doctorToken}`
+            )
+            .send({
+              status: "Completed",
+            });
+
+
+        expect(
+          response.status
+        ).toBe(409);
+
+        expect(
+          response.body.message
+        ).toBe(
+          "Cannot change appointment status from Pending to Completed."
+        );
+      }
+    );
+
+
+    test(
+      "prevents another doctor from updating an appointment",
+      async () => {
+        const appointment =
+          await Appointment.create({
+            userId: patient._id,
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+          });
+
+
+        const response =
+          await request(app)
+            .put(
+              `/api/v1/appointment/update/${appointment._id}`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${otherDoctorToken}`
+            )
+            .send({
+              status: "Approved",
+            });
+
+
+        expect(
+          response.status
+        ).toBe(404);
+
+        expect(
+          response.body.message
+        ).toBe(
+          "Appointment not found or unauthorized."
+        );
+      }
+    );
+  }
+);
