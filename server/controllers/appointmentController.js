@@ -773,11 +773,6 @@ const bookAppointmentController =
         appointment,
       });
     } catch (error) {
-      console.error(
-        "Book appointment error:",
-        error
-      );
-
       // ==================================
       // Database-Level Double Booking Guard
       // ==================================
@@ -793,6 +788,13 @@ const bookAppointmentController =
             "This time slot was just booked by another patient. Please select another available time.",
         });
       }
+
+
+      console.error(
+        "Book appointment error:",
+        error
+      );
+
 
       return res.status(500).json({
         success: false,

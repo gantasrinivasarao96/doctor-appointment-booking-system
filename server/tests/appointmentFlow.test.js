@@ -619,6 +619,86 @@ describe(
 
 
     test(
+      "prevents concurrent double booking of the same slot",
+      async () => {
+        const bookingData = {
+          doctorId:
+            doctor._id.toString(),
+
+          appointmentDate:
+            mondayDate,
+
+          appointmentTime:
+            "10:30",
+        };
+
+
+        const [
+          firstResponse,
+          secondResponse,
+        ] = await Promise.all([
+          request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            )
+            .send(bookingData),
+
+          request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${secondPatientToken}`
+            )
+            .send(bookingData),
+        ]);
+
+
+        const statuses = [
+          firstResponse.status,
+          secondResponse.status,
+        ].sort(
+          (a, b) => a - b
+        );
+
+
+        expect(
+          statuses
+        ).toEqual([
+          201,
+          409,
+        ]);
+
+
+        const appointments =
+          await Appointment.find({
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "10:30",
+            status: {
+              $in: [
+                "Pending",
+                "Approved",
+              ],
+            },
+          });
+
+
+        expect(
+          appointments
+        ).toHaveLength(1);
+      }
+    );
+
+
+    test(
       "rejects an invalid doctor ID during booking",
       async () => {
         const response =
