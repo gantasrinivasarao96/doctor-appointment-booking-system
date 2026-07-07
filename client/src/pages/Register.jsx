@@ -5,9 +5,16 @@ import { toast } from "react-toastify";
 import API from "../services/api";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import {
+  useAuth,
+} from "../context/AuthContext";
 
 function Register() {
   const navigate = useNavigate();
+
+  const {
+    setSession,
+  } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -48,10 +55,9 @@ function Register() {
         formData
       );
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
+      setSession(
+        data.token,
+        data.user
       );
 
       toast.success(
@@ -155,7 +161,7 @@ function Register() {
                         placeholder="Create password"
                         value={formData.password}
                         onChange={handleChange}
-                        minLength={6}
+                        minLength={8}
                         autoComplete="new-password"
                         required
                       />

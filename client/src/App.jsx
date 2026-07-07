@@ -20,12 +20,16 @@ import DoctorDashboard from "./dashboard/DoctorDashboard";
 import AdminDashboard from "./dashboard/AdminDashboard";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import {
+  AuthProvider,
+} from "./context/AuthContext";
 
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <AuthProvider>
+        <Routes>
         {/* Public Routes */}
         <Route
           path="/"
@@ -110,10 +114,10 @@ function App() {
             element={<AdminDashboard />}
           />
         </Route>
-      </Routes>
+        </Routes>
 
 
-      <ToastContainer
+        <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -121,7 +125,8 @@ function App() {
         closeOnClick
         pauseOnHover
         theme="colored"
-      />
+        />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

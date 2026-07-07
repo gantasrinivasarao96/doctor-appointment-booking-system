@@ -1,19 +1,28 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import {
+  useAuth,
+} from "../context/AuthContext";
+
 function Navbar() {
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
 
-  const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user"));
+  const {
+    user,
+    isAuthenticated,
+    clearSession,
+  } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearSession();
     setIsOpen(false);
-    navigate("/login");
+
+    navigate("/login", {
+      replace: true,
+    });
   };
 
   const closeMenu = () => {
@@ -56,7 +65,7 @@ function Navbar() {
               </Link>
             </li>
 
-            {!token ? (
+            {!isAuthenticated ? (
               <>
                 <li className="nav-item">
                   <Link

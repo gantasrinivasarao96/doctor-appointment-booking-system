@@ -3,23 +3,9 @@ import {
   Outlet,
 } from "react-router-dom";
 
-
-// ======================================
-// Safe Stored User Parser
-// ======================================
-const getStoredUser = () => {
-  try {
-    const storedUser =
-      localStorage.getItem("user");
-
-    return storedUser
-      ? JSON.parse(storedUser)
-      : null;
-  } catch {
-    localStorage.removeItem("user");
-    return null;
-  }
-};
+import {
+  useAuth,
+} from "../context/AuthContext";
 
 
 // ======================================
@@ -40,29 +26,27 @@ const getDashboardPath = (user) => {
 
 // ======================================
 // Protected Route
-//
-// allowedRoles examples:
-// ["user"]
-// ["doctor"]
-// ["admin"]
-//
-// No allowedRoles:
-// any authenticated user
 // ======================================
 function ProtectedRoute({
   allowedRoles,
 }) {
-  const token =
-    localStorage.getItem("token");
+  const {
+    user,
+    loading,
+    isAuthenticated,
+  } = useAuth();
 
-  const user =
-    getStoredUser();
+
+  if (loading) {
+    return (
+      <div className="container py-5 text-center">
+        <h5>Checking session...</h5>
+      </div>
+    );
+  }
 
 
-  if (!token || !user) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
+  if (!isAuthenticated) {
     return (
       <Navigate
         to="/login"

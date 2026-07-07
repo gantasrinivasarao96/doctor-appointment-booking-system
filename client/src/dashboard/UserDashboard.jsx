@@ -3,17 +3,20 @@ import { toast } from "react-toastify";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import {
+  useAuth,
+} from "../context/AuthContext";
 
 function UserDashboard() {
   const navigate = useNavigate();
 
-  const user = JSON.parse(
-    localStorage.getItem("user")
-  );
+  const {
+    user,
+    clearSession,
+  } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearSession();
 
     toast.success("Logged out successfully");
 

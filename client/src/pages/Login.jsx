@@ -9,10 +9,17 @@ import { toast } from "react-toastify";
 import API from "../services/api";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import {
+  useAuth,
+} from "../context/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const {
+    setSession,
+  } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -44,10 +51,9 @@ function Login() {
         formData
       );
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
+      setSession(
+        data.token,
+        data.user
       );
 
       toast.success(
