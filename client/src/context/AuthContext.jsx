@@ -91,6 +91,25 @@ function AuthProvider({ children }) {
   }, [validateSession]);
 
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+    };
+
+    window.addEventListener(
+      "auth:unauthorized",
+      handleUnauthorized
+    );
+
+    return () => {
+      window.removeEventListener(
+        "auth:unauthorized",
+        handleUnauthorized
+      );
+    };
+  }, []);
+
+
   const value = useMemo(
     () => ({
       user,

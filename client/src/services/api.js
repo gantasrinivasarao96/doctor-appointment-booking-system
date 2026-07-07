@@ -39,6 +39,10 @@ API.interceptors.response.use(
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
+      window.dispatchEvent(
+        new Event("auth:unauthorized")
+      );
+
       if (
         window.location.pathname !== "/login"
       ) {
