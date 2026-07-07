@@ -1,5 +1,6 @@
 const Doctor = require("../models/Doctor");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 
 // ======================================
@@ -98,6 +99,21 @@ const approveDoctorController =
       await user.save();
 
 
+      // Notify applicant about approval.
+      try {
+        await Notification.create({
+          userId: user._id,
+          message:
+            "Your doctor application has been approved.",
+        });
+      } catch (notificationError) {
+        console.error(
+          "Doctor approval notification error:",
+          notificationError
+        );
+      }
+
+
       return res.status(200).json({
         success: true,
         message:
@@ -178,6 +194,21 @@ const rejectDoctorController =
       user.isDoctor = false;
 
       await user.save();
+
+
+      // Notify applicant about rejection.
+      try {
+        await Notification.create({
+          userId: user._id,
+          message:
+            "Your doctor application has been rejected.",
+        });
+      } catch (notificationError) {
+        console.error(
+          "Doctor rejection notification error:",
+          notificationError
+        );
+      }
 
 
       return res.status(200).json({

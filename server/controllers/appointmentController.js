@@ -1,5 +1,6 @@
 const Appointment = require("../models/Appointment");
 const Doctor = require("../models/Doctor");
+const Notification = require("../models/Notification");
 const mongoose = require("mongoose");
 
 
@@ -764,6 +765,22 @@ const bookAppointmentController =
           status: "Pending",
         });
 
+      // Notify the doctor account about the new booking.
+      // Notification failure must not roll back a successful booking.
+      try {
+        await Notification.create({
+          userId: doctor.userId,
+          message:
+            `New appointment booked for ${appointmentDate} at ${normalizedAppointmentTime}.`,
+        });
+      } catch (notificationError) {
+        console.error(
+          "Appointment booking notification error:",
+          notificationError
+        );
+      }
+
+
       return res.status(201).json({
         success: true,
 
@@ -1027,6 +1044,22 @@ const updateAppointmentStatusController =
       appointment.status = status;
 
       await appointment.save();
+
+
+      // Notify the patient about the appointment status change.
+      // Notification failure must not undo a successful status update.
+      try {
+        await Notification.create({
+          userId: appointment.userId,
+          message:
+            `Your appointment on ${appointment.appointmentDate} at ${appointment.appointmentTime} is now ${status}.`,
+        });
+      } catch (notificationError) {
+        console.error(
+          "Appointment status notification error:",
+          notificationError
+        );
+      }
 
 
       return res.status(200).json({

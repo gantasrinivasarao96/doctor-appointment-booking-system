@@ -1,4 +1,6 @@
 const Doctor = require("../models/Doctor");
+const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 
 // ======================================
@@ -535,6 +537,30 @@ const applyDoctorController = async (
             "pending",
         });
 
+      // Notify all administrator accounts.
+      // Notification failure must not invalidate the submitted application.
+      try {
+        const admins = await User.find({
+          isAdmin: true,
+        }).select("_id");
+
+        if (admins.length > 0) {
+          await Notification.insertMany(
+            admins.map((admin) => ({
+              userId: admin._id,
+              message:
+                `New doctor application submitted by ${doctor.fullName}.`,
+            }))
+          );
+        }
+      } catch (notificationError) {
+        console.error(
+          "Doctor application notification error:",
+          notificationError
+        );
+      }
+
+
       return res.status(201).json({
         success: true,
         message:
@@ -594,6 +620,29 @@ const applyDoctorController = async (
       existingDoctor.timings = [];
 
       await existingDoctor.save();
+
+      // Notify all administrator accounts about the resubmission.
+      try {
+        const admins = await User.find({
+          isAdmin: true,
+        }).select("_id");
+
+        if (admins.length > 0) {
+          await Notification.insertMany(
+            admins.map((admin) => ({
+              userId: admin._id,
+              message:
+                `Doctor application resubmitted by ${existingDoctor.fullName}.`,
+            }))
+          );
+        }
+      } catch (notificationError) {
+        console.error(
+          "Doctor reapplication notification error:",
+          notificationError
+        );
+      }
+
 
       return res.status(200).json({
         success: true,

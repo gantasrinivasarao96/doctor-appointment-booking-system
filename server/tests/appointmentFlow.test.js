@@ -7,6 +7,9 @@ const Doctor = require("../models/Doctor");
 const Appointment = require(
   "../models/Appointment"
 );
+const Notification = require(
+  "../models/Notification"
+);
 const generateToken = require(
   "../utils/generateToken"
 );
@@ -83,6 +86,7 @@ describe(
 
 
     beforeEach(async () => {
+      await Notification.deleteMany({});
       await Appointment.deleteMany({});
       await Doctor.deleteMany({});
       await User.deleteMany({});
@@ -486,6 +490,23 @@ describe(
         expect(
           savedAppointment
         ).not.toBeNull();
+
+
+        const doctorNotification =
+          await Notification.findOne({
+            userId: doctorUser._id,
+          });
+
+
+        expect(
+          doctorNotification
+        ).not.toBeNull();
+
+        expect(
+          doctorNotification.message
+        ).toContain(
+          `New appointment booked for ${mondayDate} at 09:00.`
+        );
       }
     );
 

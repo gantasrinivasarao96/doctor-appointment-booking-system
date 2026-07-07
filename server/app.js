@@ -18,6 +18,11 @@ const appointmentRoutes = require(
 );
 
 
+const notificationRoutes = require(
+  "./routes/notificationRoutes"
+);
+
+
 const app = express();
 
 
@@ -56,6 +61,12 @@ app.use(
   appointmentRoutes
 );
 
+
+
+app.use(
+  "/api/v1/notification",
+  notificationRoutes
+);
 
 // ======================================
 // Health Route
