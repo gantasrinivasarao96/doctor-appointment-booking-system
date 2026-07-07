@@ -337,9 +337,25 @@ const loginController =
 
 
 // ======================================
+// Get Current User
+// ======================================
+const getCurrentUserController = (
+  req,
+  res
+) => {
+  return res.status(200).json({
+    success: true,
+    user:
+      buildUserResponse(req.user),
+  });
+};
+
+
+// ======================================
 // Exports
 // ======================================
 module.exports = {
   registerController,
   loginController,
+  getCurrentUserController,
 };

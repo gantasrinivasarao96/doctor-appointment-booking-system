@@ -290,5 +290,166 @@ describe(
         );
       }
     );
+
+
+    // ==================================
+    // Current User
+    // ==================================
+    describe(
+      "GET /api/v1/auth/me",
+      () => {
+        const userData = {
+          name:
+            "Current User",
+          email:
+            "current@example.com",
+          password:
+            "password123",
+          phone:
+            "9876543210",
+        };
+
+
+        const registerAndGetToken =
+          async () => {
+            const response =
+              await request(app)
+                .post(
+                  "/api/v1/auth/register"
+                )
+                .send(userData);
+
+            return response.body.token;
+          };
+
+
+        test(
+          "returns the current authenticated user",
+          async () => {
+            const token =
+              await registerAndGetToken();
+
+            const response =
+              await request(app)
+                .get(
+                  "/api/v1/auth/me"
+                )
+                .set(
+                  "Authorization",
+                  `Bearer ${token}`
+                );
+
+            expect(
+              response.status
+            ).toBe(200);
+
+            expect(
+              response.body.success
+            ).toBe(true);
+
+            expect(
+              response.body.user
+            ).toMatchObject({
+              name:
+                userData.name,
+              email:
+                userData.email,
+              phone:
+                userData.phone,
+              isAdmin: false,
+              isDoctor: false,
+            });
+
+            expect(
+              response.body.user.id
+            ).toBeDefined();
+
+            expect(
+              response.body.user.password
+            ).toBeUndefined();
+          }
+        );
+
+
+        test(
+          "rejects a request without a token",
+          async () => {
+            const response =
+              await request(app)
+                .get(
+                  "/api/v1/auth/me"
+                );
+
+            expect(
+              response.status
+            ).toBe(401);
+
+            expect(
+              response.body.success
+            ).toBe(false);
+          }
+        );
+
+
+        test(
+          "rejects an invalid token",
+          async () => {
+            const response =
+              await request(app)
+                .get(
+                  "/api/v1/auth/me"
+                )
+                .set(
+                  "Authorization",
+                  "Bearer invalid-token"
+                );
+
+            expect(
+              response.status
+            ).toBe(401);
+
+            expect(
+              response.body.success
+            ).toBe(false);
+          }
+        );
+
+
+        test(
+          "rejects a valid token when its user no longer exists",
+          async () => {
+            const token =
+              await registerAndGetToken();
+
+            await User.deleteOne({
+              email:
+                userData.email,
+            });
+
+            const response =
+              await request(app)
+                .get(
+                  "/api/v1/auth/me"
+                )
+                .set(
+                  "Authorization",
+                  `Bearer ${token}`
+                );
+
+            expect(
+              response.status
+            ).toBe(401);
+
+            expect(
+              response.body
+            ).toMatchObject({
+              success: false,
+              message:
+                "User not found",
+            });
+          }
+        );
+      }
+    );
   }
 );
