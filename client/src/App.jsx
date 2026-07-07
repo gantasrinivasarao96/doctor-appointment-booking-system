@@ -1,4 +1,9 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+} from "react-router-dom";
+
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -16,20 +21,48 @@ import AdminDashboard from "./dashboard/AdminDashboard";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route
+          path="/"
+          element={<Home />}
+        />
 
-        {/* Protected Routes */}
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+
+        {/* Any Authenticated User */}
         <Route element={<ProtectedRoute />}>
           <Route
             path="/doctors"
             element={<Doctors />}
+          />
+        </Route>
+
+
+        {/* Normal User Only */}
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["user"]}
+            />
+          }
+        >
+          <Route
+            path="/user/dashboard"
+            element={<UserDashboard />}
           />
 
           <Route
@@ -46,17 +79,32 @@ function App() {
             path="/apply-doctor"
             element={<ApplyDoctor />}
           />
+        </Route>
 
-          <Route
-            path="/user/dashboard"
-            element={<UserDashboard />}
-          />
 
+        {/* Doctor Only */}
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["doctor"]}
+            />
+          }
+        >
           <Route
             path="/doctor/dashboard"
             element={<DoctorDashboard />}
           />
+        </Route>
 
+
+        {/* Admin Only */}
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["admin"]}
+            />
+          }
+        >
           <Route
             path="/admin/dashboard"
             element={<AdminDashboard />}
@@ -64,7 +112,7 @@ function App() {
         </Route>
       </Routes>
 
-      {/* Global Toast Notifications */}
+
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -77,5 +125,6 @@ function App() {
     </BrowserRouter>
   );
 }
+
 
 export default App;
