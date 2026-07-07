@@ -781,6 +781,34 @@ describe(
         expect(
           response.body.appointments
         ).toHaveLength(1);
+
+
+        const returnedAppointment =
+          response.body.appointments[0];
+
+
+        expect(
+          returnedAppointment.userId
+        ).toBe(
+          patient._id.toString()
+        );
+
+
+        expect(
+          returnedAppointment.doctorId
+        ).toMatchObject({
+          fullName:
+            "Dr Appointment Test",
+          email:
+            "doctor1@example.com",
+          specialization:
+            "General Medicine",
+          experience:
+            "5 years",
+          fees: 500,
+          address:
+            "Test Address",
+        });
       }
     );
 

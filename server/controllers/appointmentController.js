@@ -814,6 +814,7 @@ const getUserAppointmentsController =
             "doctorId",
             [
               "fullName",
+              "email",
               "specialization",
               "experience",
               "fees",
