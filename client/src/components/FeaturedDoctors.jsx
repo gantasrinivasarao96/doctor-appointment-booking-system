@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
+import {
+  useAuth,
+} from "../context/AuthContext";
 
 function FeaturedDoctors() {
   const navigate = useNavigate();
+
+  const {
+    isAuthenticated,
+  } = useAuth();
 
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,9 +43,7 @@ function FeaturedDoctors() {
   };
 
   const handleBookAppointment = (doctorId) => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
+    if (!isAuthenticated) {
       navigate("/login", {
         state: {
           redirectTo: `/book/${doctorId}`,

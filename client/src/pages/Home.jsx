@@ -2,14 +2,19 @@ import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import FeaturedDoctors from "../components/FeaturedDoctors";
+import {
+  useAuth,
+} from "../context/AuthContext";
 
 function Home() {
   const navigate = useNavigate();
 
-  const token = localStorage.getItem("token");
+  const {
+    isAuthenticated,
+  } = useAuth();
 
   const handleBookAppointment = () => {
-    if (token) {
+    if (isAuthenticated) {
       navigate("/doctors");
     } else {
       navigate("/login");
@@ -41,7 +46,7 @@ function Home() {
                 Book Appointment
               </button>
 
-              {!token && (
+              {!isAuthenticated && (
                 <Link
                   to="/register"
                   className="btn btn-outline-primary btn-lg"

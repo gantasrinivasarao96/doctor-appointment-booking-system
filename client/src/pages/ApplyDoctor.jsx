@@ -465,21 +465,6 @@ function ApplyDoctor() {
       return;
     }
 
-    const token =
-      localStorage.getItem("token");
-
-    if (!token) {
-      toast.error(
-        "Please login to apply as a doctor"
-      );
-
-      navigate("/login", {
-        replace: true,
-      });
-
-      return;
-    }
-
     if (!validateSchedule()) {
       return;
     }

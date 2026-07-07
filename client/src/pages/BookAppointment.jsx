@@ -264,28 +264,6 @@ function BookAppointment() {
 
 
         try {
-          const token =
-            localStorage.getItem(
-              "token"
-            );
-
-
-          if (!token) {
-            toast.error(
-              "Please login to book an appointment"
-            );
-
-            navigate(
-              "/login",
-              {
-                replace: true,
-              }
-            );
-
-            return;
-          }
-
-
           const { data } =
             await API.get(
               "/appointment/available-slots",
@@ -358,7 +336,6 @@ function BookAppointment() {
 
       [
         doctorId,
-        navigate,
       ]
     );
 
@@ -459,28 +436,6 @@ function BookAppointment() {
       await fetchAvailableSlots(
         appointmentDate,
         false
-      );
-
-      return;
-    }
-
-
-    const token =
-      localStorage.getItem(
-        "token"
-      );
-
-
-    if (!token) {
-      toast.error(
-        "Please login to book an appointment"
-      );
-
-      navigate(
-        "/login",
-        {
-          replace: true,
-        }
       );
 
       return;
