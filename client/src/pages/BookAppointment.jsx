@@ -295,11 +295,6 @@ function BookAppointment() {
                   appointmentDate:
                     selectedDate,
                 },
-
-                headers: {
-                  Authorization:
-                    `Bearer ${token}`,
-                },
               }
             );
 
@@ -508,13 +503,6 @@ function BookAppointment() {
             appointmentTime,
 
             medicalDocument: "",
-          },
-
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
           }
         );
 

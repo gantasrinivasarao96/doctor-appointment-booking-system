@@ -12,15 +12,8 @@ function MyAppointments() {
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
-        const token = localStorage.getItem("token");
-
         const { data } = await API.get(
-          "/appointment/user",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          "/appointment/user"
         );
 
         if (data.success) {

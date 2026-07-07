@@ -127,11 +127,7 @@ function DoctorDashboard() {
   ] = useState(null);
 
 
-  const getToken = () =>
-    localStorage.getItem("token");
-
-
-  const formatTime = (time) => {
+   const formatTime = (time) => {
     if (!time) {
       return "";
     }
@@ -203,17 +199,9 @@ function DoctorDashboard() {
   const fetchProfile =
     useCallback(async () => {
       try {
-        const token = getToken();
-
         const { data } =
           await API.get(
-            "/doctor/profile",
-            {
-              headers: {
-                Authorization:
-                  `Bearer ${token}`,
-              },
-            }
+            "/doctor/profile"
           );
 
         if (data.success) {
@@ -242,17 +230,9 @@ function DoctorDashboard() {
   const fetchAppointments =
     useCallback(async () => {
       try {
-        const token = getToken();
-
         const { data } =
           await API.get(
-            "/appointment/doctor",
-            {
-              headers: {
-                Authorization:
-                  `Bearer ${token}`,
-              },
-            }
+            "/appointment/doctor"
           );
 
         if (data.success) {
@@ -636,8 +616,6 @@ function DoctorDashboard() {
     setSavingProfile(true);
 
     try {
-      const token = getToken();
-
       const { data } =
         await API.put(
           "/doctor/profile",
@@ -677,13 +655,6 @@ function DoctorDashboard() {
 
             blockedDates:
               formData.blockedDates,
-          },
-
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
           }
         );
 
@@ -728,21 +699,12 @@ function DoctorDashboard() {
     setUpdatingId(id);
 
     try {
-      const token = getToken();
-
       const { data } =
         await API.put(
           `/appointment/update/${id}`,
 
           {
             status,
-          },
-
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
           }
         );
 

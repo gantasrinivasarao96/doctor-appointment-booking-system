@@ -519,13 +519,6 @@ function ApplyDoctor() {
               Number(slotDuration),
 
             blockedDates: [],
-          },
-
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
           }
         );
 

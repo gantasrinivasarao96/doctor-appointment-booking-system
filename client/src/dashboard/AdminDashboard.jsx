@@ -12,15 +12,8 @@ function AdminDashboard() {
 
   const fetchPendingDoctors = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-
       const { data } = await API.get(
-        "/admin/doctors/pending",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        "/admin/doctors/pending"
       );
 
       if (data.success) {
@@ -50,16 +43,9 @@ function AdminDashboard() {
     setUpdatingId(id);
 
     try {
-      const token = localStorage.getItem("token");
-
       const { data } = await API.put(
         `/admin/doctors/approve/${id}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        {}
       );
 
       toast.success(
@@ -87,16 +73,9 @@ function AdminDashboard() {
     setUpdatingId(id);
 
     try {
-      const token = localStorage.getItem("token");
-
       const { data } = await API.put(
         `/admin/doctors/reject/${id}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        {}
       );
 
       toast.success(
