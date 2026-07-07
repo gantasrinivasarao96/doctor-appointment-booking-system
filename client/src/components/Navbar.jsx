@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   useAuth,
 } from "../context/AuthContext";
+import NotificationBell from "./NotificationBell";
 
 function Navbar() {
   const navigate = useNavigate();
@@ -67,6 +68,10 @@ function Navbar() {
 
             {!isAuthenticated ? (
               <>
+                <li className="nav-item d-flex align-items-center">
+                  <NotificationBell />
+                </li>
+
                 <li className="nav-item">
                   <Link
                     className="nav-link"

@@ -23,12 +23,16 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import {
   AuthProvider,
 } from "./context/AuthContext";
+import {
+  NotificationProvider,
+} from "./context/NotificationContext";
 
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <NotificationProvider>
         <Routes>
         {/* Public Routes */}
         <Route
@@ -115,6 +119,7 @@ function App() {
           />
         </Route>
         </Routes>
+        </NotificationProvider>
 
 
         <ToastContainer
