@@ -68,10 +68,6 @@ function Navbar() {
 
             {!isAuthenticated ? (
               <>
-                <li className="nav-item d-flex align-items-center">
-                  <NotificationBell />
-                </li>
-
                 <li className="nav-item">
                   <Link
                     className="nav-link"
@@ -94,6 +90,10 @@ function Navbar() {
               </>
             ) : (
               <>
+                <li className="nav-item d-flex align-items-center">
+                  <NotificationBell />
+                </li>
+
                 <li className="nav-item">
                   <Link
                     className="nav-link"
