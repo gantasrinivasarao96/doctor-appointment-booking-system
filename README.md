@@ -154,7 +154,16 @@ doctor-appointment-booking-system/
 
 ## Environment Configuration
 
-Create a `server/.env` file before running the backend.
+The repository includes `server/.env.example` as a safe configuration template.
+
+Create the local environment file by copying the template:
+
+```bash
+cd server
+cp .env.example .env
+```
+
+Then replace the placeholder values in `.env` with your actual configuration.
 
 Example configuration:
 
@@ -201,7 +210,15 @@ npm install
 
 ### 3. Configure Backend Environment Variables
 
-Create `server/.env` using the variables documented in the Environment Configuration section.
+From the `server` directory, create the local environment file from the provided template:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` and replace the placeholder values with your actual MongoDB connection strings and JWT secret.
+
+The real `.env` file is ignored by Git and must not be committed.
 
 ### 4. Start the Backend Server
 
