@@ -126,6 +126,11 @@ function DoctorDashboard() {
     setUpdatingId,
   ] = useState(null);
 
+  const [
+    openingDocumentId,
+    setOpeningDocumentId,
+  ] = useState(null);
+
 
    const formatTime = (time) => {
     if (!time) {
@@ -724,6 +729,61 @@ function DoctorDashboard() {
       );
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+
+  const openMedicalDocument = async (
+    appointmentId
+  ) => {
+    if (openingDocumentId) {
+      return;
+    }
+
+    setOpeningDocumentId(
+      appointmentId
+    );
+
+    try {
+      const response =
+        await API.get(
+          `/appointment/${appointmentId}/medical-document`,
+          {
+            responseType: "blob",
+          }
+        );
+
+      const documentUrl =
+        URL.createObjectURL(
+          response.data
+        );
+
+      window.open(
+        documentUrl,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+      window.setTimeout(
+        () => {
+          URL.revokeObjectURL(
+            documentUrl
+          );
+        },
+        1000
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        error.response?.data
+          ?.message ||
+          "Failed to open medical document"
+      );
+
+    } finally {
+      setOpeningDocumentId(null);
     }
   };
 
@@ -1640,6 +1700,34 @@ function DoctorDashboard() {
                             }
                           </span>
                         </p>
+
+
+                        {appointment.medicalDocument && (
+
+                          <div className="mt-3">
+
+                            <button
+                              type="button"
+                              className="btn btn-outline-primary w-100"
+                              disabled={
+                                openingDocumentId ===
+                                appointment._id
+                              }
+                              onClick={() =>
+                                openMedicalDocument(
+                                  appointment._id
+                                )
+                              }
+                            >
+                              {openingDocumentId ===
+                              appointment._id
+                                ? "Opening Document..."
+                                : "📄 View Medical Document"}
+                            </button>
+
+                          </div>
+
+                        )}
 
 
                         {appointment.status ===

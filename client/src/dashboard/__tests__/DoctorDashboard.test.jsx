@@ -22,9 +22,17 @@ import DoctorDashboard from "../DoctorDashboard";
 const {
   toastSuccessMock,
   toastErrorMock,
+  createObjectURLMock,
+  revokeObjectURLMock,
+  windowOpenMock,
 } = vi.hoisted(() => ({
   toastSuccessMock: vi.fn(),
   toastErrorMock: vi.fn(),
+  createObjectURLMock: vi.fn(
+    () => "blob:test-document"
+  ),
+  revokeObjectURLMock: vi.fn(),
+  windowOpenMock: vi.fn(),
 }));
 
 
@@ -109,6 +117,8 @@ const initialAppointments = [
     appointmentDate: "2030-01-07",
     appointmentTime: "09:00",
     status: "Pending",
+    medicalDocument:
+      "patient-report.pdf",
   },
 
   {
@@ -192,11 +202,38 @@ describe(
 
       toastSuccessMock.mockReset();
       toastErrorMock.mockReset();
+
+      windowOpenMock.mockReset();
+      createObjectURLMock.mockReset();
+      revokeObjectURLMock.mockReset();
+      createObjectURLMock.mockClear();
+      revokeObjectURLMock.mockClear();
+      windowOpenMock.mockClear();
+
+      vi.stubGlobal(
+        "URL",
+        {
+          ...URL,
+          createObjectURL:
+            createObjectURLMock,
+          revokeObjectURL:
+            revokeObjectURLMock,
+        }
+      );
+
+      vi.spyOn(
+        window,
+        "open"
+      ).mockImplementation(
+        windowOpenMock
+      );
     });
 
 
     afterEach(() => {
       cleanup();
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
     });
 
 
@@ -539,5 +576,217 @@ describe(
         ).not.toHaveBeenCalled();
       }
     );
+
+    test(
+      "shows medical document access only when a document exists",
+      async () => {
+        mockDashboardRequests();
+
+        render(<DoctorDashboard />);
+
+        await screen.findByText(
+          /Pending Patient/
+        );
+
+        expect(
+          screen.getAllByRole(
+            "button",
+            {
+              name:
+                /View Medical Document/,
+            }
+          )
+        ).toHaveLength(1);
+      }
+    );
+
+
+    test(
+      "opens an appointment medical document",
+      async () => {
+        const documentBlob =
+          new Blob(
+            ["medical document"],
+            {
+              type:
+                "application/pdf",
+            }
+          );
+
+        API.get.mockImplementation(
+          async (url, config) => {
+            if (
+              url ===
+              "/doctor/profile"
+            ) {
+              return {
+                data: {
+                  success: true,
+                  doctor:
+                    doctorProfile,
+                },
+              };
+            }
+
+            if (
+              url ===
+              "/appointment/doctor"
+            ) {
+              return {
+                data: {
+                  success: true,
+                  appointments:
+                    initialAppointments,
+                },
+              };
+            }
+
+            if (
+              url ===
+              "/appointment/appointment-pending/medical-document"
+            ) {
+              expect(config).toEqual({
+                responseType: "blob",
+              });
+
+              return {
+                data: documentBlob,
+              };
+            }
+
+            throw new Error(
+              `Unexpected GET request: ${url}`
+            );
+          }
+        );
+
+        render(<DoctorDashboard />);
+
+        fireEvent.click(
+          await screen.findByRole(
+            "button",
+            {
+              name:
+                /View Medical Document/,
+            }
+          )
+        );
+
+        await waitFor(() => {
+          expect(
+            createObjectURLMock
+          ).toHaveBeenCalledWith(
+            documentBlob
+          );
+        });
+
+        expect(
+          windowOpenMock
+        ).toHaveBeenCalledWith(
+          "blob:test-document",
+          "_blank",
+          "noopener,noreferrer"
+        );
+
+        expect(
+          revokeObjectURLMock
+        ).not.toHaveBeenCalled();
+
+        await new Promise(
+          (resolve) =>
+            setTimeout(resolve, 1100)
+        );
+
+        expect(
+          revokeObjectURLMock
+        ).toHaveBeenCalledTimes(1);
+
+        expect(
+          revokeObjectURLMock
+        ).toHaveBeenCalledWith(
+          "blob:test-document"
+        );
+      }
+    );
+
+
+    test(
+      "shows an error when medical document access fails",
+      async () => {
+        API.get.mockImplementation(
+          async (url) => {
+            if (
+              url ===
+              "/doctor/profile"
+            ) {
+              return {
+                data: {
+                  success: true,
+                  doctor:
+                    doctorProfile,
+                },
+              };
+            }
+
+            if (
+              url ===
+              "/appointment/doctor"
+            ) {
+              return {
+                data: {
+                  success: true,
+                  appointments:
+                    initialAppointments,
+                },
+              };
+            }
+
+            if (
+              url ===
+              "/appointment/appointment-pending/medical-document"
+            ) {
+              throw {
+                response: {
+                  data: {
+                    message:
+                      "Medical document file not found.",
+                  },
+                },
+              };
+            }
+
+            throw new Error(
+              `Unexpected GET request: ${url}`
+            );
+          }
+        );
+
+        render(<DoctorDashboard />);
+
+        fireEvent.click(
+          await screen.findByRole(
+            "button",
+            {
+              name:
+                /View Medical Document/,
+            }
+          )
+        );
+
+        await waitFor(() => {
+          expect(
+            toastErrorMock
+          ).toHaveBeenCalledWith(
+            "Medical document file not found."
+          );
+        });
+
+        expect(
+          windowOpenMock
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+
   }
 );
