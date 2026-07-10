@@ -310,17 +310,45 @@ describe(
         );
 
         await waitFor(() => {
-          expect(API.post).toHaveBeenCalledWith(
-            "/appointment/book",
-            {
-              doctorId: "doctor-1",
-              appointmentDate:
-                "2030-01-07",
-              appointmentTime: "09:00",
-              medicalDocument: "",
-            }
-          );
+          expect(
+            API.post
+          ).toHaveBeenCalledTimes(1);
         });
+
+        const [
+          requestUrl,
+          requestBody,
+        ] = API.post.mock.calls[0];
+
+        expect(requestUrl).toBe(
+          "/appointment/book"
+        );
+
+        expect(
+          requestBody
+        ).toBeInstanceOf(FormData);
+
+        expect(
+          requestBody.get("doctorId")
+        ).toBe("doctor-1");
+
+        expect(
+          requestBody.get(
+            "appointmentDate"
+          )
+        ).toBe("2030-01-07");
+
+        expect(
+          requestBody.get(
+            "appointmentTime"
+          )
+        ).toBe("09:00");
+
+        expect(
+          requestBody.has(
+            "medicalDocument"
+          )
+        ).toBe(false);
 
         expect(
           toastSuccessMock
@@ -336,6 +364,222 @@ describe(
             replace: true,
           }
         );
+      }
+    );
+
+
+    test(
+      "includes a selected medical document in the booking request",
+      async () => {
+        API.post.mockResolvedValueOnce({
+          data: {
+            success: true,
+            message:
+              "Appointment booked successfully",
+          },
+        });
+
+        const { container } =
+          renderBookingPage();
+
+        await screen.findByText(
+          "Dr Test Doctor"
+        );
+
+        const fileInput =
+          screen.getByLabelText(
+            /Medical Document/i
+          );
+
+        const file = new File(
+          ["medical report"],
+          "medical-report.pdf",
+          {
+            type: "application/pdf",
+          }
+        );
+
+        fireEvent.change(
+          fileInput,
+          {
+            target: {
+              files: [file],
+            },
+          }
+        );
+
+        expect(
+          await screen.findByText(
+            "medical-report.pdf"
+          )
+        ).toBeInTheDocument();
+
+        selectDate(
+          container,
+          "2030-01-07"
+        );
+
+        const slotButton =
+          await screen.findByRole(
+            "button",
+            {
+              name: "09:00 AM",
+            }
+          );
+
+        fireEvent.click(slotButton);
+
+        fireEvent.click(
+          screen.getByRole(
+            "button",
+            {
+              name:
+                "Confirm Appointment",
+            }
+          )
+        );
+
+        await waitFor(() => {
+          expect(
+            API.post
+          ).toHaveBeenCalledTimes(1);
+        });
+
+        const requestBody =
+          API.post.mock.calls[0][1];
+
+        expect(
+          requestBody
+        ).toBeInstanceOf(FormData);
+
+        const uploadedFile =
+          requestBody.get(
+            "medicalDocument"
+          );
+
+        expect(
+          uploadedFile
+        ).toBeInstanceOf(File);
+
+        expect(
+          uploadedFile.name
+        ).toBe(
+          "medical-report.pdf"
+        );
+
+        expect(
+          uploadedFile.type
+        ).toBe(
+          "application/pdf"
+        );
+      }
+    );
+
+
+    test(
+      "rejects unsupported medical document types",
+      async () => {
+        renderBookingPage();
+
+        await screen.findByText(
+          "Dr Test Doctor"
+        );
+
+        const fileInput =
+          screen.getByLabelText(
+            /Medical Document/i
+          );
+
+        const file = new File(
+          ["plain text"],
+          "report.txt",
+          {
+            type: "text/plain",
+          }
+        );
+
+        fireEvent.change(
+          fileInput,
+          {
+            target: {
+              files: [file],
+            },
+          }
+        );
+
+        expect(
+          toastErrorMock
+        ).toHaveBeenCalledWith(
+          "Only PDF, JPEG and PNG medical documents are allowed."
+        );
+
+        expect(
+          screen.queryByText(
+            "report.txt"
+          )
+        ).not.toBeInTheDocument();
+
+        expect(
+          API.post
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+
+    test(
+      "rejects medical documents larger than 5 MB",
+      async () => {
+        renderBookingPage();
+
+        await screen.findByText(
+          "Dr Test Doctor"
+        );
+
+        const fileInput =
+          screen.getByLabelText(
+            /Medical Document/i
+          );
+
+        const oversizedFile =
+          new File(
+            [
+              new Uint8Array(
+                5 * 1024 * 1024 + 1
+              ),
+            ],
+            "large-report.pdf",
+            {
+              type:
+                "application/pdf",
+            }
+          );
+
+        fireEvent.change(
+          fileInput,
+          {
+            target: {
+              files: [
+                oversizedFile,
+              ],
+            },
+          }
+        );
+
+        expect(
+          toastErrorMock
+        ).toHaveBeenCalledWith(
+          "Medical document must not exceed 5 MB."
+        );
+
+        expect(
+          screen.queryByText(
+            "large-report.pdf"
+          )
+        ).not.toBeInTheDocument();
+
+        expect(
+          API.post
+        ).not.toHaveBeenCalled();
       }
     );
 

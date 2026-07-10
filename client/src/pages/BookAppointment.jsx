@@ -80,6 +80,24 @@ function BookAppointment() {
     setSubmitting,
   ] = useState(false);
 
+  // ====================================
+  // Medical Document State
+  // ====================================
+  const [
+    medicalDocument,
+    setMedicalDocument,
+  ] = useState(null);
+
+  const allowedDocumentTypes =
+    new Set([
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+    ]);
+
+  const maxDocumentSize =
+    5 * 1024 * 1024;
+
 
   // ====================================
   // Get Today YYYY-MM-DD
@@ -393,6 +411,48 @@ function BookAppointment() {
 
 
   // ====================================
+  // Select Medical Document
+  // ====================================
+  const handleDocumentChange = (
+    event
+  ) => {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      setMedicalDocument(null);
+      return;
+    }
+
+    if (
+      !allowedDocumentTypes.has(
+        file.type
+      )
+    ) {
+      toast.error(
+        "Only PDF, JPEG and PNG medical documents are allowed."
+      );
+
+      event.target.value = "";
+      setMedicalDocument(null);
+      return;
+    }
+
+    if (file.size > maxDocumentSize) {
+      toast.error(
+        "Medical document must not exceed 5 MB."
+      );
+
+      event.target.value = "";
+      setMedicalDocument(null);
+      return;
+    }
+
+    setMedicalDocument(file);
+  };
+
+
+  // ====================================
   // Book Appointment
   // ====================================
   const handleSubmit = async (
@@ -446,19 +506,35 @@ function BookAppointment() {
 
 
     try {
+      const formData =
+        new FormData();
+
+      formData.append(
+        "doctorId",
+        doctorId
+      );
+
+      formData.append(
+        "appointmentDate",
+        appointmentDate
+      );
+
+      formData.append(
+        "appointmentTime",
+        appointmentTime
+      );
+
+      if (medicalDocument) {
+        formData.append(
+          "medicalDocument",
+          medicalDocument
+        );
+      }
+
       const { data } =
         await API.post(
           "/appointment/book",
-
-          {
-            doctorId,
-
-            appointmentDate,
-
-            appointmentTime,
-
-            medicalDocument: "",
-          }
+          formData
         );
 
 
@@ -1027,6 +1103,59 @@ function BookAppointment() {
                         </div>
 
                       )}
+
+
+                      {/* =========================
+                          MEDICAL DOCUMENT
+                      ========================= */}
+
+                      <div className="mb-4">
+
+                        <label
+                          htmlFor="medicalDocument"
+                          className="form-label fw-bold"
+                        >
+                          📄 Medical Document
+                          <span className="text-muted fw-normal">
+                            {" "}(Optional)
+                          </span>
+                        </label>
+
+                        <input
+                          id="medicalDocument"
+                          type="file"
+                          className="form-control"
+                          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                          onChange={
+                            handleDocumentChange
+                          }
+                          disabled={
+                            submitting
+                          }
+                        />
+
+                        <div className="form-text">
+                          PDF, JPEG or PNG only.
+                          Maximum file size: 5 MB.
+                        </div>
+
+                        {medicalDocument && (
+
+                          <div className="alert alert-success py-2 mt-2 mb-0">
+
+                            Selected:{" "}
+
+                            <strong>
+                              {
+                                medicalDocument.name
+                              }
+                            </strong>
+
+                          </div>
+
+                        )}
+
+                      </div>
 
 
                       {/* =========================
