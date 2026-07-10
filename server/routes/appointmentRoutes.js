@@ -26,6 +26,7 @@ const {
   getUserAppointmentsController,
   getDoctorAppointmentsController,
   updateAppointmentStatusController,
+  getMedicalDocumentController,
 } = require(
   "../controllers/appointmentController"
 );
@@ -65,6 +66,16 @@ router.get(
   authMiddleware,
   doctorMiddleware,
   getDoctorAppointmentsController
+);
+
+
+// Doctor accesses an appointment medical document
+router.get(
+  "/:id/medical-document",
+  authMiddleware,
+  doctorMiddleware,
+  validateObjectId,
+  getMedicalDocumentController
 );
 
 

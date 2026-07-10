@@ -25,6 +25,34 @@ const uploadDirectory = path.join(
 
 
 // ======================================
+// Binary Response Helper
+// ======================================
+const binaryParser = (
+  response,
+  callback
+) => {
+  const chunks = [];
+
+  response.on(
+    "data",
+    (chunk) => {
+      chunks.push(chunk);
+    }
+  );
+
+  response.on(
+    "end",
+    () => {
+      callback(
+        null,
+        Buffer.concat(chunks)
+      );
+    }
+  );
+};
+
+
+// ======================================
 // Date Helpers
 // ======================================
 const toDateString = (date) => {
@@ -1269,6 +1297,186 @@ describe(
         ).toHaveLength(0);
       }
     );
+
+
+    test(
+      "allows the assigned doctor to access a medical document",
+      async () => {
+        const fileName =
+          "authorized-document.pdf";
+
+        const fileContent =
+          Buffer.from(
+            "%PDF-1.4 authorized medical document"
+          );
+
+        await fs.writeFile(
+          path.join(
+            uploadDirectory,
+            fileName
+          ),
+          fileContent
+        );
+
+        const appointment =
+          await Appointment.create({
+            userId: patient._id,
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+            medicalDocument:
+              fileName,
+          });
+
+        const response =
+          await request(app)
+            .get(
+              `/api/v1/appointment/${appointment._id}/medical-document`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${doctorToken}`
+            )
+            .buffer(true)
+            .parse(binaryParser);
+
+        expect(response.status).toBe(200);
+
+        expect(
+          response.headers[
+            "content-type"
+          ]
+        ).toContain(
+          "application/pdf"
+        );
+
+        expect(
+          Buffer.isBuffer(response.body)
+        ).toBe(true);
+
+        expect(
+          response.body.equals(
+            fileContent
+          )
+        ).toBe(true);
+      }
+    );
+
+
+    test(
+      "prevents another doctor from accessing a medical document",
+      async () => {
+        const fileName =
+          "private-document.pdf";
+
+        await fs.writeFile(
+          path.join(
+            uploadDirectory,
+            fileName
+          ),
+          Buffer.from(
+            "%PDF-1.4 private medical document"
+          )
+        );
+
+        const appointment =
+          await Appointment.create({
+            userId: patient._id,
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+            medicalDocument:
+              fileName,
+          });
+
+        const response =
+          await request(app)
+            .get(
+              `/api/v1/appointment/${appointment._id}/medical-document`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${otherDoctorToken}`
+            );
+
+        expect(response.status).toBe(404);
+
+        expect(response.body.message).toBe(
+          "Appointment not found or unauthorized."
+        );
+      }
+    );
+
+
+    test(
+      "returns 404 when an appointment has no medical document",
+      async () => {
+        const appointment =
+          await Appointment.create({
+            userId: patient._id,
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+          });
+
+        const response =
+          await request(app)
+            .get(
+              `/api/v1/appointment/${appointment._id}/medical-document`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${doctorToken}`
+            );
+
+        expect(response.status).toBe(404);
+
+        expect(response.body.message).toBe(
+          "No medical document is attached to this appointment."
+        );
+      }
+    );
+
+
+    test(
+      "returns 404 when the medical document file is missing",
+      async () => {
+        const appointment =
+          await Appointment.create({
+            userId: patient._id,
+            doctorId: doctor._id,
+            appointmentDate:
+              mondayDate,
+            appointmentTime:
+              "09:00",
+            medicalDocument:
+              "missing-document.pdf",
+          });
+
+        const response =
+          await request(app)
+            .get(
+              `/api/v1/appointment/${appointment._id}/medical-document`
+            )
+            .set(
+              "Authorization",
+              `Bearer ${doctorToken}`
+            );
+
+        expect(response.status).toBe(404);
+
+        expect(response.body.message).toBe(
+          "Medical document file not found."
+        );
+      }
+    );
+
 
   }
 );

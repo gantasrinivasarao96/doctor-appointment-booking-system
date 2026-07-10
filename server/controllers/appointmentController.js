@@ -3,6 +3,7 @@ const Doctor = require("../models/Doctor");
 const Notification = require("../models/Notification");
 const mongoose = require("mongoose");
 const fs = require("fs/promises");
+const path = require("path");
 
 
 // ======================================
@@ -1112,6 +1113,103 @@ const updateAppointmentStatusController =
   };
 
 
+
+// ======================================
+// Get Appointment Medical Document
+// ======================================
+const getMedicalDocumentController =
+  async (req, res) => {
+    try {
+      const doctor =
+        await Doctor.findOne({
+          userId: req.user._id,
+          status: "approved",
+        });
+
+      if (!doctor) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Approved doctor profile not found.",
+        });
+      }
+
+      const appointment =
+        await Appointment.findOne({
+          _id: req.params.id,
+          doctorId: doctor._id,
+        });
+
+      if (!appointment) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Appointment not found or unauthorized.",
+        });
+      }
+
+      if (!appointment.medicalDocument) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "No medical document is attached to this appointment.",
+        });
+      }
+
+      const uploadDirectory = path.resolve(
+        __dirname,
+        "..",
+        "uploads",
+        "medical-documents"
+      );
+
+      const documentPath = path.resolve(
+        uploadDirectory,
+        appointment.medicalDocument
+      );
+
+      if (
+        path.dirname(documentPath) !==
+        uploadDirectory
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid medical document path.",
+        });
+      }
+
+      try {
+        await fs.access(documentPath);
+      } catch (error) {
+        if (error.code === "ENOENT") {
+          return res.status(404).json({
+            success: false,
+            message:
+              "Medical document file not found.",
+          });
+        }
+
+        throw error;
+      }
+
+      return res.sendFile(documentPath);
+
+    } catch (error) {
+      console.error(
+        "Get medical document error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to retrieve medical document.",
+      });
+    }
+  };
+
+
 // ======================================
 // Exports
 // ======================================
@@ -1121,4 +1219,5 @@ module.exports = {
   getUserAppointmentsController,
   getDoctorAppointmentsController,
   updateAppointmentStatusController,
+  getMedicalDocumentController,
 };
