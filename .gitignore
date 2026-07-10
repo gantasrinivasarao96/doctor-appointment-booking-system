@@ -141,3 +141,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Private uploaded medical documents
+server/uploads/medical-documents/*
+!server/uploads/medical-documents/.gitkeep

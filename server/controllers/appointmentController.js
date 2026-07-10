@@ -2,6 +2,7 @@ const Appointment = require("../models/Appointment");
 const Doctor = require("../models/Doctor");
 const Notification = require("../models/Notification");
 const mongoose = require("mongoose");
+const fs = require("fs/promises");
 
 
 // ======================================
@@ -627,13 +628,19 @@ const getAvailableSlotsController =
 // ======================================
 const bookAppointmentController =
   async (req, res) => {
+    let retainUploadedDocument = false;
+
     try {
       const {
         doctorId,
         appointmentDate,
         appointmentTime,
-        medicalDocument,
       } = req.body;
+
+      const medicalDocument =
+        req.file
+          ? req.file.filename
+          : "";
 
       if (
         !doctorId ||
@@ -765,6 +772,8 @@ const bookAppointmentController =
           status: "Pending",
         });
 
+      retainUploadedDocument = true;
+
       // Notify the doctor account about the new booking.
       // Notification failure must not roll back a successful booking.
       try {
@@ -818,8 +827,27 @@ const bookAppointmentController =
         message:
           "Failed to book appointment.",
       });
+    } finally {
+      if (
+        req.file?.path &&
+        !retainUploadedDocument
+      ) {
+        try {
+          await fs.unlink(req.file.path);
+        } catch (cleanupError) {
+          if (
+            cleanupError.code !== "ENOENT"
+          ) {
+            console.error(
+              "Medical document cleanup error:",
+              cleanupError
+            );
+          }
+        }
+      }
     }
   };
+
 const getUserAppointmentsController =
   async (req, res) => {
     try {

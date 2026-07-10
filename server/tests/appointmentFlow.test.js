@@ -1,5 +1,7 @@
 const request = require("supertest");
 const bcrypt = require("bcryptjs");
+const fs = require("fs/promises");
+const path = require("path");
 
 const app = require("../app");
 const User = require("../models/User");
@@ -12,6 +14,13 @@ const Notification = require(
 );
 const generateToken = require(
   "../utils/generateToken"
+);
+
+const uploadDirectory = path.join(
+  __dirname,
+  "..",
+  "uploads",
+  "medical-documents"
 );
 
 
@@ -90,6 +99,25 @@ describe(
       await Appointment.deleteMany({});
       await Doctor.deleteMany({});
       await User.deleteMany({});
+
+      const uploadedFiles =
+        await fs.readdir(uploadDirectory);
+
+      await Promise.all(
+        uploadedFiles
+          .filter(
+            (fileName) =>
+              fileName !== ".gitkeep"
+          )
+          .map((fileName) =>
+            fs.unlink(
+              path.join(
+                uploadDirectory,
+                fileName
+              )
+            )
+          )
+      );
 
 
       mondayDate =
@@ -1032,5 +1060,215 @@ describe(
         );
       }
     );
+
+    test(
+      "uploads a PDF medical document during booking",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            )
+            .field(
+              "doctorId",
+              doctor._id.toString()
+            )
+            .field(
+              "appointmentDate",
+              mondayDate
+            )
+            .field(
+              "appointmentTime",
+              "09:00"
+            )
+            .attach(
+              "medicalDocument",
+              Buffer.from(
+                "%PDF-1.4 test medical document"
+              ),
+              {
+                filename:
+                  "medical-report.pdf",
+                contentType:
+                  "application/pdf",
+              }
+            );
+
+        expect(response.status).toBe(201);
+
+        expect(
+          response.body.appointment
+            .medicalDocument
+        ).toMatch(/^[a-f0-9]{48}\.pdf$/);
+
+        const storedPath = path.join(
+          uploadDirectory,
+          response.body.appointment
+            .medicalDocument
+        );
+
+        await expect(
+          fs.access(storedPath)
+        ).resolves.toBeUndefined();
+      }
+    );
+
+    test(
+      "rejects unsupported medical document types",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            )
+            .field(
+              "doctorId",
+              doctor._id.toString()
+            )
+            .field(
+              "appointmentDate",
+              mondayDate
+            )
+            .field(
+              "appointmentTime",
+              "09:00"
+            )
+            .attach(
+              "medicalDocument",
+              Buffer.from(
+                "plain text document"
+              ),
+              {
+                filename: "report.txt",
+                contentType: "text/plain",
+              }
+            );
+
+        expect(response.status).toBe(400);
+
+        expect(response.body.message).toBe(
+          "Only PDF, JPEG and PNG medical documents are allowed."
+        );
+
+        const files =
+          await fs.readdir(uploadDirectory);
+
+        expect(
+          files.filter(
+            (fileName) =>
+              fileName !== ".gitkeep"
+          )
+        ).toHaveLength(0);
+      }
+    );
+
+    test(
+      "rejects medical documents larger than 5 MB",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            )
+            .field(
+              "doctorId",
+              doctor._id.toString()
+            )
+            .field(
+              "appointmentDate",
+              mondayDate
+            )
+            .field(
+              "appointmentTime",
+              "09:00"
+            )
+            .attach(
+              "medicalDocument",
+              Buffer.alloc(
+                5 * 1024 * 1024 + 1
+              ),
+              {
+                filename:
+                  "large-report.pdf",
+                contentType:
+                  "application/pdf",
+              }
+            );
+
+        expect(response.status).toBe(400);
+
+        expect(response.body.message).toBe(
+          "Medical document must not exceed 5 MB."
+        );
+      }
+    );
+
+    test(
+      "removes uploaded document when booking validation fails",
+      async () => {
+        const response =
+          await request(app)
+            .post(
+              "/api/v1/appointment/book"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${patientToken}`
+            )
+            .field(
+              "doctorId",
+              "invalid-doctor-id"
+            )
+            .field(
+              "appointmentDate",
+              mondayDate
+            )
+            .field(
+              "appointmentTime",
+              "09:00"
+            )
+            .attach(
+              "medicalDocument",
+              Buffer.from(
+                "%PDF-1.4 orphan cleanup test"
+              ),
+              {
+                filename:
+                  "cleanup-test.pdf",
+                contentType:
+                  "application/pdf",
+              }
+            );
+
+        expect(response.status).toBe(400);
+
+        expect(response.body.message).toBe(
+          "Invalid doctor ID."
+        );
+
+        const files =
+          await fs.readdir(uploadDirectory);
+
+        expect(
+          files.filter(
+            (fileName) =>
+              fileName !== ".gitkeep"
+          )
+        ).toHaveLength(0);
+      }
+    );
+
   }
 );

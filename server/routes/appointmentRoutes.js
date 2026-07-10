@@ -9,6 +9,12 @@ const validateObjectId = require(
 );
 
 const {
+  uploadMedicalDocument,
+} = require(
+  "../middleware/medicalDocumentUpload"
+);
+
+const {
   doctorMiddleware,
 } = require(
   "../middleware/roleMiddleware"
@@ -40,6 +46,7 @@ router.get(
 router.post(
   "/book",
   authMiddleware,
+  uploadMedicalDocument,
   bookAppointmentController
 );
 
