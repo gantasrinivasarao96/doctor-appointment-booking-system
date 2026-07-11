@@ -389,3 +389,41 @@ All notification routes require authentication.
 | PUT | `/:id/read` | Mark one notification as read | Authenticated |
 | DELETE | `/` | Delete all notifications | Authenticated |
 | DELETE | `/:id` | Delete one notification | Authenticated |
+
+---
+
+## Application Screenshots
+
+The application supports three role-based workflows: Patient, Doctor, and Administrator.
+
+### Patient Flow
+
+| Home Page | Registration | Login |
+|---|---|---|
+| ![Home Page](docs/screenshots/patient-flow/01-home-page.jpg) | ![Patient Registration](docs/screenshots/patient-flow/02-patient-registration.jpg) | ![Patient Login](docs/screenshots/patient-flow/03-patient-login.jpg) |
+
+| Dashboard | Doctor Discovery | My Appointments |
+|---|---|---|
+| ![Patient Dashboard](docs/screenshots/patient-flow/04-patient-dashboard.jpg) | ![Doctor Discovery](docs/screenshots/patient-flow/07-doctor-discovery.jpg) | ![My Appointments](docs/screenshots/patient-flow/06-my-appointments.jpg) |
+
+| Date Selection | Slot Selection | Medical Document Upload |
+|---|---|---|
+| ![Appointment Date Selection](docs/screenshots/patient-flow/11-appointment-date-selection.jpg) | ![Appointment Slot Selection](docs/screenshots/patient-flow/12-appointment-slot-selection.jpg) | ![Medical Document Upload](docs/screenshots/patient-flow/13-medical-document-upload.jpg) |
+
+Additional patient workflow screenshots are available in `docs/screenshots/patient-flow/`.
+
+### Doctor Flow
+
+| Dashboard Overview | Schedule | Appointment Management |
+|---|---|---|
+| ![Doctor Dashboard](docs/screenshots/doctor-flow/01-doctor-dashboard-overview.jpg) | ![Doctor Schedule](docs/screenshots/doctor-flow/02-doctor-dashboard-schedule.jpg) | ![Appointment Management](docs/screenshots/doctor-flow/03-doctor-appointment-management.jpg) |
+
+| Profile Editing | Availability Settings |
+|---|---|
+| ![Doctor Profile Editing](docs/screenshots/doctor-flow/04-doctor-profile-editing.jpg) | ![Doctor Availability Settings](docs/screenshots/doctor-flow/05-doctor-availability-settings.jpg) |
+
+### Admin Flow
+
+| Dashboard | Doctor Application Review | Notifications |
+|---|---|---|
+| ![Admin Dashboard](docs/screenshots/admin-flow/01-admin-dashboard-empty-state.jpg) | ![Doctor Application Review](docs/screenshots/admin-flow/02-admin-doctor-application-review.jpg) | ![Admin Notifications](docs/screenshots/admin-flow/03-admin-notification-center.jpg) |
