@@ -427,3 +427,11 @@ Additional patient workflow screenshots are available in `docs/screenshots/patie
 | Dashboard | Doctor Application Review | Notifications |
 |---|---|---|
 | ![Admin Dashboard](docs/screenshots/admin-flow/01-admin-dashboard-empty-state.jpg) | ![Doctor Application Review](docs/screenshots/admin-flow/02-admin-doctor-application-review.jpg) | ![Admin Notifications](docs/screenshots/admin-flow/03-admin-notification-center.jpg) |
+
+### Medical Document Storage
+
+Medical documents uploaded through the appointment booking workflow are stored at runtime in `server/uploads/medical-documents/`.
+
+For privacy, security, and repository hygiene, runtime medical documents are excluded from Git version control through `.gitignore`. The upload directory is retained in the repository using `.gitkeep`.
+
+The medical document upload workflow is demonstrated in the Patient Flow section of the application screenshot gallery above.
