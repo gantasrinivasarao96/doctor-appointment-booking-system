@@ -435,3 +435,29 @@ Medical documents uploaded through the appointment booking workflow are stored a
 For privacy, security, and repository hygiene, runtime medical documents are excluded from Git version control through `.gitignore`. The upload directory is retained in the repository using `.gitkeep`.
 
 The medical document upload workflow is demonstrated in the Patient Flow section of the application screenshot gallery above.
+
+---
+
+## Project Demo Video
+
+A complete demonstration of the Doctor Appointment Booking System is available below.
+
+### Google Drive Demo
+
+https://drive.google.com/drive/folders/1CSiNuGM-W1KnVfd3s-twQLUrMhSB0go0
+
+### The demo includes
+
+- Patient Registration
+- Patient Login
+- Doctor Discovery
+- Appointment Booking
+- Medical Document Upload
+- Notification System
+- Doctor Dashboard
+- Appointment Management
+- Doctor Availability
+- Admin Dashboard
+- Doctor Application Approval
+- Complete Role-Based Workflow
+
