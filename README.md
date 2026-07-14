@@ -461,3 +461,20 @@ https://drive.google.com/drive/folders/1CSiNuGM-W1KnVfd3s-twQLUrMhSB0go0
 - Doctor Application Approval
 - Complete Role-Based Workflow
 
+
+---
+
+# Live Demo
+
+## Frontend (Vercel)
+
+https://doctor-appointment-booking-system-lake.vercel.app/
+
+## Backend API (Render)
+
+https://doctor-appointment-booking-system-ruyh.onrender.com
+
+## Demo Video
+
+https://drive.google.com/drive/folders/1CSiNuGM-W1KnVfd3s-twQLUrMhSB0go0
+
