@@ -2,6 +2,44 @@
 
 A full-stack MERN application for doctor discovery, doctor applications, appointment scheduling, notifications, availability management, and secure medical document sharing.
 
+---
+
+## 🌐 Live Demo
+
+### Frontend (Vercel)
+https://doctor-appointment-booking-system-lake.vercel.app/
+
+### Backend API (Render)
+https://doctor-appointment-booking-system-ruyh.onrender.com
+
+---
+
+## 🎥 Project Demo Video
+
+A complete demonstration of the Doctor Appointment Booking System is available below.
+
+### Google Drive Demo
+
+https://drive.google.com/drive/folders/1CSiNuGM-W1KnVfd3s-twQLUrMhSB0go0
+
+### The demo includes
+
+- Patient Registration
+- Patient Login
+- Doctor Discovery
+- Appointment Booking
+- Medical Document Upload
+- Notification System
+- Doctor Dashboard
+- Appointment Management
+- Doctor Availability
+- Admin Dashboard
+- Doctor Application Approval
+- Complete Role-Based Workflow
+
+---
+
+
 ## Technology Stack
 
 ### Frontend
@@ -438,43 +476,4 @@ The medical document upload workflow is demonstrated in the Patient Flow section
 
 ---
 
-## Project Demo Video
-
-A complete demonstration of the Doctor Appointment Booking System is available below.
-
-### Google Drive Demo
-
-https://drive.google.com/drive/folders/1CSiNuGM-W1KnVfd3s-twQLUrMhSB0go0
-
-### The demo includes
-
-- Patient Registration
-- Patient Login
-- Doctor Discovery
-- Appointment Booking
-- Medical Document Upload
-- Notification System
-- Doctor Dashboard
-- Appointment Management
-- Doctor Availability
-- Admin Dashboard
-- Doctor Application Approval
-- Complete Role-Based Workflow
-
-
----
-
-# Live Demo
-
-## Frontend (Vercel)
-
-https://doctor-appointment-booking-system-lake.vercel.app/
-
-## Backend API (Render)
-
-https://doctor-appointment-booking-system-ruyh.onrender.com
-
-## Demo Video
-
-https://drive.google.com/drive/folders/1CSiNuGM-W1KnVfd3s-twQLUrMhSB0go0
 
