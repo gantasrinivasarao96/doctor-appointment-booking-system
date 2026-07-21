@@ -3,6 +3,9 @@
 A full-stack MERN application for doctor discovery, doctor applications, appointment scheduling, notifications, availability management, and secure medical document sharing.
 
 ---
+## 📂 Project Resources
+
+[Project Documentation & Templates](https://drive.google.com/drive/folders/1Ds4L6nAltShAzpXWRlRMbd70Siu-705Y)
 
 ## 🌐 Live Demo
 
